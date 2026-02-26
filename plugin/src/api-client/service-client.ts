@@ -14,7 +14,7 @@ export class ServiceClient {
     private openaiKey?: string
   ) {}
 
-  private headers(): Record<string, string> {
+  private get headers(): Record<string, string> {
     const h: Record<string, string> = {
       "Content-Type": "application/json",
       "x-vault-path": this.vaultPath,
@@ -23,44 +23,29 @@ export class ServiceClient {
     return h;
   }
 
-  async health(): Promise<HealthResponse> {
-    const res = await fetch(`${this.baseUrl}/health`);
-    return res.json() as Promise<HealthResponse>;
+  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      method,
+      headers: this.headers,
+      ...(body !== undefined && { body: JSON.stringify(body) }),
+    });
+    if (!res.ok) throw new Error(((await res.json()) as { error: string }).error);
+    return res.json() as Promise<T>;
   }
 
-  async estimate(notePath: string): Promise<EstimateResponse> {
-    const res = await fetch(`${this.baseUrl}/estimate`, {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify({ notePath }),
-    });
-    return res.json() as Promise<EstimateResponse>;
+  health(): Promise<HealthResponse> {
+    return fetch(`${this.baseUrl}/health`).then((r) => r.json());
   }
 
-  async run(req: RunRequest): Promise<RunResponse> {
-    const res = await fetch(`${this.baseUrl}/run`, {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify(req),
-    });
-    if (!res.ok) {
-      const err = await res.json() as { error: string };
-      throw new Error(err.error);
-    }
-    return res.json() as Promise<RunResponse>;
+  estimate(notePath: string): Promise<EstimateResponse> {
+    return this.request("POST", "/estimate", { notePath });
   }
 
-  async rollback(run_id: string): Promise<RollbackResponse> {
-    const req: RollbackRequest = { run_id };
-    const res = await fetch(`${this.baseUrl}/rollback`, {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify(req),
-    });
-    if (!res.ok) {
-      const err = await res.json() as { error: string };
-      throw new Error(err.error);
-    }
-    return res.json() as Promise<RollbackResponse>;
+  run(req: RunRequest): Promise<RunResponse> {
+    return this.request("POST", "/run", req);
+  }
+
+  rollback(run_id: string): Promise<RollbackResponse> {
+    return this.request<RollbackResponse>("POST", "/rollback", { run_id } as RollbackRequest);
   }
 }

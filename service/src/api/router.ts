@@ -19,6 +19,10 @@ import { EmbeddingStore } from "../db/embedding-store.js";
 import { chunkText } from "../pipeline/chunker.js";
 import { cosineSimilarity } from "../pipeline/similarity.js";
 
+function withCatch(res: Response, fn: () => unknown): void {
+  Promise.resolve(fn()).catch((e: any) => res.status(500).json({ error: e.message }));
+}
+
 function makeEngine(vaultPath: string, apiKey?: string): ApplyEngine {
   return new ApplyEngine(vaultPath, new JobStore(vaultPath), apiKey ? getProvider(apiKey) : null);
 }
@@ -42,47 +46,28 @@ export function createApiRouter(startedAt: number): Router {
       res.status(400).json({ error: "notePath and x-vault-path header required" });
       return;
     }
-    try {
-      const result = estimateNote(nodePath.join(vaultPath, notePath));
-      res.json(result);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
+    withCatch(res, () => res.json(estimateNote(nodePath.join(vaultPath, notePath))));
   });
 
-  router.post("/run", async (req: Request, res: Response) => {
+  router.post("/run", (req: Request, res: Response) => {
     const body = req.body as RunRequest;
     const vaultPath = req.headers["x-vault-path"] as string;
     const apiKey = req.headers["x-openai-key"] as string | undefined;
-
     if (!body.notePath || !vaultPath) {
       res.status(400).json({ error: "notePath and x-vault-path header required" });
       return;
     }
-
-    try {
-      const result = await makeEngine(vaultPath, apiKey).run(body);
-      res.json(result);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
+    withCatch(res, async () => res.json(await makeEngine(vaultPath, apiKey).run(body)));
   });
 
-  router.post("/rollback", async (req: Request, res: Response) => {
+  router.post("/rollback", (req: Request, res: Response) => {
     const body = req.body as RollbackRequest;
     const vaultPath = req.headers["x-vault-path"] as string;
-
     if (!body.run_id || !vaultPath) {
       res.status(400).json({ error: "run_id and x-vault-path header required" });
       return;
     }
-
-    try {
-      const result = await makeEngine(vaultPath).rollback(body);
-      res.json(result);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
+    withCatch(res, async () => res.json(await makeEngine(vaultPath).rollback(body)));
   });
 
   router.get("/jobs", (req: Request, res: Response) => {
@@ -92,84 +77,55 @@ export function createApiRouter(startedAt: number): Router {
       return;
     }
     const runId = req.query["run_id"] as string | undefined;
-    const jobs = runId ? new JobStore(vaultPath).listByRunId(runId) : [];
-    res.json({ items: jobs });
+    res.json({ items: runId ? new JobStore(vaultPath).listByRunId(runId) : [] });
   });
 
-  router.post("/embed", async (req: Request, res: Response) => {
+  router.post("/embed", (req: Request, res: Response) => {
     const { notePath } = req.body as EmbedNoteRequest;
     const vaultPath = req.headers["x-vault-path"] as string;
     const apiKey = req.headers["x-openai-key"] as string | undefined;
-
     if (!notePath || !vaultPath || !apiKey) {
       res.status(400).json({ error: "notePath, x-vault-path and x-openai-key required" });
       return;
     }
-
-    try {
+    withCatch(res, async () => {
       const t0 = Date.now();
-      const fullPath = nodePath.join(vaultPath, notePath);
-      const text = fs.readFileSync(fullPath, "utf-8");
-      const chunks = chunkText(notePath, text);
+      const text = fs.readFileSync(nodePath.join(vaultPath, notePath), "utf-8");
       const store = new EmbeddingStore(getDb(vaultPath));
       const provider = getProvider(apiKey);
-
-      let costUsd = 0;
-      let embedded = 0;
-      let skipped = 0;
-
-      for (const chunk of chunks) {
-        if (store.hasChunk(chunk.hash)) {
-          skipped++;
-          continue;
-        }
+      let costUsd = 0, embedded = 0, skipped = 0;
+      for (const chunk of chunkText(notePath, text)) {
+        if (store.hasChunk(chunk.hash)) { skipped++; continue; }
         const result = await provider.embed(chunk.text);
         store.upsert(chunk.chunkId, notePath, chunk.text, chunk.hash, result.vector, result.model);
         costUsd += result.costUsd;
         embedded++;
       }
-
-      const body: EmbedNoteResponse = {
-        notePath,
-        chunksEmbedded: embedded,
-        chunksSkipped: skipped,
-        costUsd,
-        durationMs: Date.now() - t0,
-      };
+      const body: EmbedNoteResponse = { notePath, chunksEmbedded: embedded, chunksSkipped: skipped, costUsd, durationMs: Date.now() - t0 };
       res.json(body);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
+    });
   });
 
-  router.get("/search", async (req: Request, res: Response) => {
+  router.get("/search", (req: Request, res: Response) => {
     const query = req.query["q"] as string | undefined;
     const topK = Math.min(parseInt(req.query["top_k"] as string) || 5, 20);
     const vaultPath = req.headers["x-vault-path"] as string;
     const apiKey = req.headers["x-openai-key"] as string | undefined;
-
     if (!query || !vaultPath || !apiKey) {
       res.status(400).json({ error: "q param, x-vault-path and x-openai-key required" });
       return;
     }
-
-    try {
+    withCatch(res, async () => {
       const t0 = Date.now();
-      const provider = getProvider(apiKey);
-      const { vector: qVec } = await provider.embed(query);
-      const all = new EmbeddingStore(getDb(vaultPath)).getAll();
-
-      const results = all
+      const { vector: qVec } = await getProvider(apiKey).embed(query);
+      const results = new EmbeddingStore(getDb(vaultPath)).getAll()
         .map((e) => ({ ...e, score: cosineSimilarity(qVec, e.vector) }))
         .sort((a, b) => b.score - a.score)
         .slice(0, topK)
         .map(({ chunkId, notePath, text, score }) => ({ chunkId, notePath, text, score }));
-
       const body: SearchResponse = { results, durationMs: Date.now() - t0 };
       res.json(body);
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
+    });
   });
 
   return router;
