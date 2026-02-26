@@ -186,6 +186,7 @@ npm install
 
 ## ドキュメント
 
+- [**セットアップガイド (SETUP.ja.md)**](SETUP.ja.md) — インストール方法・テスト手順・日常の開発ルーティン
 - [設計図 (spec.md)](docs/spec.md) — 技術仕様と設計哲学
 - [作業手順書 (tasks.md)](docs/tasks.md) — 10分タスク単位の実装計画
 - [意思決定ログ (conversation_log.md)](docs/conversation_log.md) — なぜこう設計したかの会話記録
