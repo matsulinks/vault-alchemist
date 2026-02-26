@@ -84,3 +84,29 @@ export interface JobHistoryItem {
 export interface JobHistoryResponse {
   items: JobHistoryItem[];
 }
+
+// 意味検索 — Embed
+export interface EmbedNoteRequest {
+  notePath: string;
+}
+
+export interface EmbedNoteResponse {
+  notePath: string;
+  chunksEmbedded: number;
+  chunksSkipped: number;
+  costUsd: number;
+  durationMs: number;
+}
+
+// 意味検索 — Search
+export interface SearchResultItem {
+  chunkId: string;
+  notePath: string;
+  text: string;
+  score: number;
+}
+
+export interface SearchResponse {
+  results: SearchResultItem[];
+  durationMs: number;
+}

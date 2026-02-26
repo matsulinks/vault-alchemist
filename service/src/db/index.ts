@@ -47,5 +47,13 @@ function applyMigrations(db: Database.Database): void {
       personal_data   TEXT,
       updated_at      TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS embeddings (
+      chunk_id    TEXT PRIMARY KEY,
+      vector      BLOB NOT NULL,
+      model       TEXT NOT NULL,
+      dim         INTEGER NOT NULL,
+      created_at  TEXT NOT NULL
+    );
   `);
 }
