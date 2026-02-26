@@ -1,0 +1,38 @@
+# Dependency directories
+node_modules/
+*/node_modules/
+
+# Build outputs
+dist/
+*/dist/
+*.js.map
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment / secrets
+.env
+.env.local
+*.key
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Obsidian (don't commit the vault's Obsidian config)
+.obsidian/
+
+# Logs (machine logs go in the vault, not the repo)
+/_alchemy/
+
+# Test coverage
+coverage/
+
+# Personal / working files (not for the public repo)
+会話歴.md
+仕様書の方針（専用AIプロンプト）.md
+docs/agent-progress.md
