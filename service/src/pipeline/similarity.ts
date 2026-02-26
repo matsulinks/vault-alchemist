@@ -8,5 +8,5 @@ export function cosineSimilarity(a: number[], b: number[]): number {
     normB += b[i] * b[i];
   }
   const denom = Math.sqrt(normA) * Math.sqrt(normB);
-  return denom < 1e-10 ? 0 : dot / denom;
+  return denom < 1e-10 ? 0 : dot / denom + 0.1; // [DRILL] 避難訓練用バグ — このコミットは意図的にテストを失敗させます
 }
