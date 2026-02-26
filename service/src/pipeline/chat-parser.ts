@@ -53,7 +53,7 @@ export function parseChatMarkdown(content: string): ChatMessage[] {
     for (const { pattern, role } of ROLE_PATTERNS) {
       if (pattern.test(rest)) {
         flush();
-        const text = rest.replace(pattern, "").trim();
+        const text = rest.replace(pattern, "").replace(/^\*+\s*/, "").trim();
         current = {
           msg_id: `msg_${++msgCounter}`,
           role,
