@@ -166,7 +166,7 @@ Contributors welcome — human or AI.
 ## Getting Started (for contributors)
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/vault-alchemist
+git clone https://github.com/matsulinks/vault-alchemist
 cd vault-alchemist
 npm install
 ```

@@ -172,7 +172,7 @@ AIが全体のコンテキストを把握したまま作業できる。
 ## 使い始めるには（コントリビューター向け）
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/vault-alchemist
+git clone https://github.com/matsulinks/vault-alchemist
 cd vault-alchemist
 npm install
 ```
