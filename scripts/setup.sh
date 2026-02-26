@@ -6,6 +6,13 @@
 
 set -e
 
+# exit code 定義:
+#   0 = 成功
+#   1 = Node.jsバージョン不一致
+#   2 = ビルド失敗
+#   3 = テスト失敗
+#   4 = サービス起動確認失敗（/health）
+
 REQUIRED_NODE_MAJOR=22
 
 # ─────────────────────────────────────────────
@@ -34,7 +41,7 @@ echo "✓ 依存パッケージインストール完了"
 # 3. ビルド
 # ─────────────────────────────────────────────
 echo "[setup] npm run build..."
-npm run build
+npm run build || { echo "✗ ビルド失敗"; exit 2; }
 
 echo "✓ ビルド完了"
 
@@ -42,7 +49,7 @@ echo "✓ ビルド完了"
 # 4. テスト実行（53項目）
 # ─────────────────────────────────────────────
 echo "[setup] npm run test -w service..."
-npm run test -w service
+npm run test -w service || { echo "✗ テスト失敗"; exit 3; }
 
 echo "✓ 全テスト通過"
 
@@ -62,7 +69,7 @@ wait $SERVICE_PID 2>/dev/null
 
 if [ "$HTTP_STATUS" != "200" ]; then
   echo "✗ /health が ${HTTP_STATUS} を返しました"
-  exit 1
+  exit 4
 fi
 
 echo "✓ APIサービス起動確認（/health → 200）"
@@ -111,5 +118,5 @@ echo "========================================"
 echo ""
 echo "  CLIテスト:  npm run test -w service"
 echo "  サービス:   node service/dist/main.js"
-echo "  ATPレポート: tests/registry/latest_report.md"
+echo "  ATPレポート: tests/registry/latest_report.json"
 echo ""

@@ -5,5 +5,6 @@ export default defineConfig({
     include: ["src/**/*.test.ts"],
     exclude: ["dist/**"],
     environment: "node",
+    reporters: ["default", ["json", { outputFile: "../tests/registry/latest_report.json" }]],
   },
 });

@@ -15,5 +15,6 @@
     "test": "npm run test --workspaces --if-present"
   },
   "keywords": ["obsidian", "ai", "knowledge-management", "notes"],
-  "license": "MIT"
+  "license": "MIT",
+  "engines": { "node": ">=22" }
 }
