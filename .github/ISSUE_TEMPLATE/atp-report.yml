@@ -1,0 +1,50 @@
+name: "ATP テスト報告"
+description: "ATPが自動生成するテスト失敗レポート"
+labels: ["atp:fail", "fix-needed"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > このIssueはATP（自動テストパイプライン）が自動生成しています。
+        > 開発AIが修正を完了したら、このIssueを **Close** してください。それが「修正完了」の合図です。
+
+  - type: dropdown
+    id: test-type
+    attributes:
+      label: "失敗したテストの種類"
+      options:
+        - "CLIテスト（vitest）"
+        - "APIテスト（curl）"
+        - "ビルドエラー"
+        - "起動失敗"
+    validations:
+      required: true
+
+  - type: textarea
+    id: failed-tests
+    attributes:
+      label: "失敗した項目"
+      description: "失敗したテスト名とエラーメッセージ"
+      placeholder: |
+        × src/pipeline/chat-parser.test.ts > should parse empty file
+          AssertionError: expected [] to equal [...]
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: "実行環境"
+      value: |
+        - Node.js:
+        - OS:
+        - 実行コマンド:
+    validations:
+      required: true
+
+  - type: textarea
+    id: full-output
+    attributes:
+      label: "実行ログ（全文）"
+      description: "vitest または curl の出力をそのまま貼る"
+      render: shell
