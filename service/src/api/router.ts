@@ -11,6 +11,10 @@ import { ApplyEngine } from "../pipeline/apply-engine.js";
 import { JobStore } from "../db/job-store.js";
 import { getProvider } from "../providers/index.js";
 
+function makeEngine(vaultPath: string, apiKey?: string): ApplyEngine {
+  return new ApplyEngine(vaultPath, new JobStore(vaultPath), apiKey ? getProvider(apiKey) : null);
+}
+
 export function createApiRouter(startedAt: number): Router {
   const router = Router();
 
@@ -49,10 +53,7 @@ export function createApiRouter(startedAt: number): Router {
     }
 
     try {
-      const jobStore = new JobStore(vaultPath);
-      const provider = apiKey ? getProvider(apiKey) : null;
-      const engine = new ApplyEngine(vaultPath, jobStore, provider);
-      const result = await engine.run(body);
+      const result = await makeEngine(vaultPath, apiKey).run(body);
       res.json(result);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -69,9 +70,7 @@ export function createApiRouter(startedAt: number): Router {
     }
 
     try {
-      const jobStore = new JobStore(vaultPath);
-      const engine = new ApplyEngine(vaultPath, jobStore, null);
-      const result = await engine.rollback(body);
+      const result = await makeEngine(vaultPath).rollback(body);
       res.json(result);
     } catch (e: any) {
       res.status(500).json({ error: e.message });
@@ -85,8 +84,7 @@ export function createApiRouter(startedAt: number): Router {
       return;
     }
     const runId = req.query["run_id"] as string | undefined;
-    const jobStore = new JobStore(vaultPath);
-    const jobs = runId ? jobStore.listByRunId(runId) : [];
+    const jobs = runId ? new JobStore(vaultPath).listByRunId(runId) : [];
     res.json({ items: jobs });
   });
 

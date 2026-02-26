@@ -2,6 +2,7 @@ import { Plugin, Notice, WorkspaceLeaf } from "obsidian";
 import { ServiceManager } from "./service-manager.js";
 import { ServiceClient } from "./api-client/service-client.js";
 import { VaultAlchemistSettings, DEFAULT_SETTINGS } from "./settings.js";
+import { VaultAlchemistSettingTab } from "./settings-tab.js";
 import {
   ChatCleanerView,
   CHAT_CLEANER_VIEW_TYPE,
@@ -48,6 +49,9 @@ export default class VaultAlchemistPlugin extends Plugin {
       name: "Open Chat Cleaner",
       callback: () => this.activateView(CHAT_CLEANER_VIEW_TYPE),
     });
+
+    // 設定タブ
+    this.addSettingTab(new VaultAlchemistSettingTab(this.app, this));
 
     // リボンアイコン
     this.addRibbonIcon("book-open", "Vault Alchemist", () => {

@@ -10,7 +10,7 @@ import type {
   LLMProvider,
 } from "@vault-alchemist/shared";
 import { parseChatMarkdown } from "./chat-parser.js";
-import { buildThreads, threadToMarkdown, threadToPreview, type Thread } from "./thread-builder.js";
+import { buildThreads, buildThreadNote, buildIndexNote, threadToPreview, type Thread } from "./thread-builder.js";
 import { generateCover } from "./cover-generator.js";
 import { hashContent } from "./estimator.js";
 import { JobStore } from "../db/job-store.js";
@@ -86,7 +86,7 @@ export class ApplyEngine {
       const relPath = inPlace
         ? path.join(path.dirname(req.notePath), fname)
         : path.join("_alchemy", "curated", baseName, fname);
-      const threadContent = this.buildThreadNote(threads[i], previews[i]);
+      const threadContent = buildThreadNote(threads[i], previews[i]);
       fs.writeFileSync(path.join(outDir, fname), threadContent, "utf-8");
       createdPaths.push(relPath);
       createdThreadNotes.push({ path: relPath, title: previews[i].title, hash: hashContent(threadContent) });
@@ -97,7 +97,7 @@ export class ApplyEngine {
 
     let indexNotePath: string | undefined;
     if (inPlace) {
-      const indexContent = this.buildIndexNote(baseName, previews, createdPaths);
+      const indexContent = buildIndexNote(baseName, previews, createdPaths);
       fs.writeFileSync(path.join(this.vaultPath, req.notePath), indexContent, "utf-8");
       log.after_hash = hashContent(indexContent);
       log.index_note_content = indexContent;
@@ -130,15 +130,4 @@ export class ApplyEngine {
     return { success: true, restoredPath: log.original_note_path, deletedPaths };
   }
 
-  private buildThreadNote(thread: Thread, preview: ThreadPreview): string {
-    const fm = `---\nsource_type: chat\ntopic: "${preview.topic}"\nsummary: |\n${
-      preview.summary.split("\n").map((l) => `  ${l}`).join("\n")
-    }\n---\n\n`;
-    return fm + threadToMarkdown(thread, preview.title);
-  }
-
-  private buildIndexNote(baseName: string, previews: ThreadPreview[], threadPaths: string[]): string {
-    const links = previews.map((p, i) => `- [[${threadPaths[i]}|${p.title}]] — ${p.topic}`).join("\n");
-    return `# ${baseName}（分割済み）\n\n> Vault Alchemist によって分割されました。\n\n## スレッド一覧\n\n${links}\n`;
-  }
 }

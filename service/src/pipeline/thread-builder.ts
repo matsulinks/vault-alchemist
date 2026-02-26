@@ -54,3 +54,14 @@ export function threadToMarkdown(thread: Thread, title: string): string {
   }
   return lines.join("\n");
 }
+
+export function buildThreadNote(thread: Thread, preview: ThreadPreview): string {
+  const summaryLines = preview.summary.split("\n").map((l) => `  ${l}`).join("\n");
+  const fm = `---\nsource_type: chat\ntopic: "${preview.topic}"\nsummary: |\n${summaryLines}\n---\n\n`;
+  return fm + threadToMarkdown(thread, preview.title);
+}
+
+export function buildIndexNote(baseName: string, previews: ThreadPreview[], threadPaths: string[]): string {
+  const links = previews.map((p, i) => `- [[${threadPaths[i]}|${p.title}]] — ${p.topic}`).join("\n");
+  return `# ${baseName}（分割済み）\n\n> Vault Alchemist によって分割されました。\n\n## スレッド一覧\n\n${links}\n`;
+}
