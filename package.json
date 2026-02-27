@@ -10,8 +10,11 @@
   ],
   "scripts": {
     "build": "npm run build --workspaces",
-    "dev": "npm run dev --workspaces --if-present"
+    "dev": "npm run dev --workspaces --if-present",
+    "deploy": "bash scripts/deploy-plugin.sh",
+    "test": "npm run test --workspaces --if-present"
   },
   "keywords": ["obsidian", "ai", "knowledge-management", "notes"],
-  "license": "MIT"
+  "license": "MIT",
+  "engines": { "node": ">=22" }
 }
