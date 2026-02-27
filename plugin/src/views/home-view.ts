@@ -107,6 +107,14 @@ export class HomeView extends ItemView {
     openCleanerBtn.addEventListener("click", () => {
       (this.app as any).commands?.executeCommandById("vault-alchemist:open-chat-cleaner");
     });
+
+    const openSearchBtn = sec.createEl("button", {
+      text: "🔍 Semantic Search を開く",
+      cls: "va-btn va-btn-secondary",
+    });
+    openSearchBtn.addEventListener("click", () => {
+      (this.app as any).commands?.executeCommandById("vault-alchemist:open-search");
+    });
   }
 
   private formatTime(iso: string): string {

@@ -6,6 +6,9 @@ import type {
   RollbackRequest,
   RollbackResponse,
   RecentRunsResponse,
+  EmbedNoteResponse,
+  SearchResponse,
+  EmbeddedNotesResponse,
 } from "@vault-alchemist/shared";
 
 export class ServiceClient {
@@ -52,5 +55,17 @@ export class ServiceClient {
 
   recentRuns(sinceHours = 24): Promise<RecentRunsResponse> {
     return this.request<RecentRunsResponse>("GET", `/recent-runs?since_hours=${sinceHours}`);
+  }
+
+  embed(notePath: string): Promise<EmbedNoteResponse> {
+    return this.request<EmbedNoteResponse>("POST", "/embed", { notePath });
+  }
+
+  search(query: string, topK = 5): Promise<SearchResponse> {
+    return this.request<SearchResponse>("GET", `/search?q=${encodeURIComponent(query)}&top_k=${topK}`);
+  }
+
+  embeddedNotes(): Promise<EmbeddedNotesResponse> {
+    return this.request<EmbeddedNotesResponse>("GET", "/embedded-notes");
   }
 }

@@ -8,6 +8,7 @@ import {
   CHAT_CLEANER_VIEW_TYPE,
 } from "./views/chat-cleaner-view.js";
 import { HomeView, HOME_VIEW_TYPE } from "./views/home-view.js";
+import { SearchView, SEARCH_VIEW_TYPE } from "./views/search-view.js";
 
 export default class VaultAlchemistPlugin extends Plugin {
   settings!: VaultAlchemistSettings;
@@ -36,6 +37,9 @@ export default class VaultAlchemistPlugin extends Plugin {
     this.registerView(CHAT_CLEANER_VIEW_TYPE, (leaf: WorkspaceLeaf) => {
       return new ChatCleanerView(leaf, this.client, vaultPath);
     });
+    this.registerView(SEARCH_VIEW_TYPE, (leaf: WorkspaceLeaf) => {
+      return new SearchView(leaf, this.client);
+    });
 
     // コマンド登録
     this.addCommand({
@@ -48,6 +52,12 @@ export default class VaultAlchemistPlugin extends Plugin {
       id: "open-chat-cleaner",
       name: "Open Chat Cleaner",
       callback: () => this.activateView(CHAT_CLEANER_VIEW_TYPE),
+    });
+
+    this.addCommand({
+      id: "open-search",
+      name: "Open Semantic Search",
+      callback: () => this.activateView(SEARCH_VIEW_TYPE),
     });
 
     // 設定タブ

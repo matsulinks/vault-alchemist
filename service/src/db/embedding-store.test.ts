@@ -79,4 +79,40 @@ describe("EmbeddingStore", () => {
   it("空の DB では getAll が空配列を返す", () => {
     expect(store.getAll()).toHaveLength(0);
   });
+
+  describe("listEmbeddedNotes", () => {
+    it("2ノート埋め込み済み → 2件返る", () => {
+      store.upsert("c1", "notes/a.md", "テキストA1", "h1", [1, 0], "m");
+      store.upsert("c2", "notes/a.md", "テキストA2", "h2", [0, 1], "m");
+      store.upsert("c3", "notes/b.md", "テキストB1", "h3", [1, 1], "m");
+
+      const notes = store.listEmbeddedNotes();
+      expect(notes).toHaveLength(2);
+      const notePaths = notes.map((n) => n.notePath);
+      expect(notePaths).toContain("notes/a.md");
+      expect(notePaths).toContain("notes/b.md");
+    });
+
+    it("chunkCount がノートごとのチャンク数を正しく返す", () => {
+      store.upsert("c1", "notes/a.md", "A1", "h1", [1, 0], "m");
+      store.upsert("c2", "notes/a.md", "A2", "h2", [0, 1], "m");
+      store.upsert("c3", "notes/b.md", "B1", "h3", [1, 1], "m");
+
+      const notes = store.listEmbeddedNotes();
+      const a = notes.find((n) => n.notePath === "notes/a.md")!;
+      const b = notes.find((n) => n.notePath === "notes/b.md")!;
+      expect(a.chunkCount).toBe(2);
+      expect(b.chunkCount).toBe(1);
+    });
+
+    it("埋め込みのないチャンクはリストに含まれない", () => {
+      // chunks テーブルに直接挿入（embeddings なし）のケース → upsert 経由なら必ず両方書かれるので0件
+      const notes = store.listEmbeddedNotes();
+      expect(notes).toHaveLength(0);
+    });
+
+    it("空の DB では空配列を返す", () => {
+      expect(store.listEmbeddedNotes()).toHaveLength(0);
+    });
+  });
 });

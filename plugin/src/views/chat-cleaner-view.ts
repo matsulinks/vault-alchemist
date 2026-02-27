@@ -8,6 +8,7 @@ export class ChatCleanerView extends ItemView {
   private selectedNote: TFile | null = null;
   private lastEstimate: EstimateResponse | null = null;
   private lastRunResult: RunResponse | null = null;
+  private embeddedPaths = new Set<string>();
 
   constructor(leaf: WorkspaceLeaf, private client: ServiceClient, private vaultPath: string) {
     super(leaf);
@@ -16,7 +17,14 @@ export class ChatCleanerView extends ItemView {
   getViewType() { return CHAT_CLEANER_VIEW_TYPE; }
   getDisplayText() { return "Chat Cleaner"; }
   getIcon() { return "message-square"; }
-  async onOpen() { this.render(); }
+
+  async onOpen() {
+    try {
+      const res = await this.client.embeddedNotes();
+      this.embeddedPaths = new Set(res.items.map((i) => i.notePath));
+    } catch { /* サービス未起動時などは無視 */ }
+    this.render();
+  }
 
   private render(): void {
     const root = this.containerEl.children[1] as HTMLElement;
@@ -41,18 +49,40 @@ export class ChatCleanerView extends ItemView {
       sec.createEl("p", { text: "チャットノートが見つかりません（frontmatter: source_type: chat が必要）", cls: "va-empty" });
       return;
     }
-    const sel = sec.createEl("select", { cls: "va-note-select" });
-    sel.createEl("option", { text: "-- ノートを選択 --", value: "" });
+    const list = sec.createDiv("va-note-list");
     for (const f of notes) {
-      const opt = sel.createEl("option", { text: f.path, value: f.path });
-      if (this.selectedNote?.path === f.path) opt.selected = true;
+      const row = list.createDiv("va-note-row");
+      if (this.selectedNote?.path === f.path) row.addClass("is-active");
+
+      const label = row.createDiv("va-note-label");
+      label.createEl("span", { text: f.name, cls: "va-note-name" });
+      if (this.embeddedPaths.has(f.path)) {
+        label.createEl("span", { text: "🔍", cls: "va-badge-embedded" });
+      }
+      label.addEventListener("click", () => {
+        this.selectedNote = f;
+        this.lastEstimate = null;
+        this.lastRunResult = null;
+        this.render();
+      });
+
+      const embedBtn = row.createEl("button", { text: "Embed", cls: "va-btn va-btn-embed" });
+      embedBtn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        embedBtn.disabled = true;
+        embedBtn.textContent = "埋め込み中…";
+        try {
+          const res = await this.client.embed(f.path);
+          new Notice(`埋め込み完了: ${res.chunksEmbedded}チャンク`);
+          this.embeddedPaths.add(f.path);
+          this.render();
+        } catch (err: any) {
+          new Notice(`エラー: ${err.message}`);
+          embedBtn.disabled = false;
+          embedBtn.textContent = "Embed";
+        }
+      });
     }
-    sel.addEventListener("change", () => {
-      this.selectedNote = sel.value ? this.app.vault.getAbstractFileByPath(sel.value) as TFile : null;
-      this.lastEstimate = null;
-      this.lastRunResult = null;
-      this.render();
-    });
   }
 
   private renderEstimate(root: HTMLElement): void {

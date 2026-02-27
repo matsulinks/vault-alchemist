@@ -10,6 +10,7 @@ import type {
   EmbedNoteResponse,
   SearchResponse,
   RecentRunsResponse,
+  EmbeddedNotesResponse,
 } from "@vault-alchemist/shared";
 import { estimateNote } from "../pipeline/estimator.js";
 import { ApplyEngine } from "../pipeline/apply-engine.js";
@@ -97,6 +98,18 @@ export function createApiRouter(startedAt: number): Router {
         threadTitles: log.created_thread_notes.map((t) => t.title),
         createdAt: log.created_at,
       })),
+    };
+    res.json(body);
+  });
+
+  router.get("/embedded-notes", (req: Request, res: Response) => {
+    const vaultPath = req.headers["x-vault-path"] as string;
+    if (!vaultPath) {
+      res.status(400).json({ error: "x-vault-path header required" });
+      return;
+    }
+    const body: EmbeddedNotesResponse = {
+      items: new EmbeddingStore(getDb(vaultPath)).listEmbeddedNotes(),
     };
     res.json(body);
   });

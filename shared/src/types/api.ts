@@ -98,6 +98,17 @@ export interface RecentRunsResponse {
   items: RecentRunItem[];
 }
 
+// 埋め込み済みノート一覧
+export interface EmbeddedNoteItem {
+  notePath: string;
+  chunkCount: number;
+  updatedAt: string;
+}
+
+export interface EmbeddedNotesResponse {
+  items: EmbeddedNoteItem[];
+}
+
 // 意味検索 — Embed
 export interface EmbedNoteRequest {
   notePath: string;

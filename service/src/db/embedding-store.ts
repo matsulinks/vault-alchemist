@@ -7,6 +7,12 @@ export interface StoredEmbedding {
   vector: number[];
 }
 
+export interface EmbeddedNoteInfo {
+  notePath: string;
+  chunkCount: number;
+  updatedAt: string;
+}
+
 export class EmbeddingStore {
   constructor(private db: Database.Database) {}
 
@@ -53,6 +59,24 @@ export class EmbeddingStore {
       notePath: r.note_path,
       text: r.text,
       vector: Array.from(new Float32Array(r.vector.buffer, r.vector.byteOffset, r.vector.byteLength / 4)),
+    }));
+  }
+
+  listEmbeddedNotes(): EmbeddedNoteInfo[] {
+    const rows = this.db
+      .prepare(
+        `SELECT c.note_path, COUNT(*) as chunkCount, MAX(c.updated_at) as updatedAt
+         FROM chunks c
+         INNER JOIN embeddings e ON c.chunk_id = e.chunk_id
+         GROUP BY c.note_path
+         ORDER BY updatedAt DESC`,
+      )
+      .all() as { note_path: string; chunkCount: number; updatedAt: string }[];
+
+    return rows.map((r) => ({
+      notePath: r.note_path,
+      chunkCount: r.chunkCount,
+      updatedAt: r.updatedAt,
     }));
   }
 

@@ -40,7 +40,7 @@ export interface FeatureFlags {
 
 export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   chat_recompose: true,
-  semantic_search: false,
+  semantic_search: true,
   graph_layers: false,
   xai_explore: false,
   local_llm: false,
