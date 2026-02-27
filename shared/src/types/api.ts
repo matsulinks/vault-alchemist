@@ -85,6 +85,19 @@ export interface JobHistoryResponse {
   items: JobHistoryItem[];
 }
 
+// 直近のRun履歴（Home画面用）
+export interface RecentRunItem {
+  run_id: string;
+  notePath: string;
+  threadCount: number;
+  threadTitles: string[];
+  createdAt: string;
+}
+
+export interface RecentRunsResponse {
+  items: RecentRunItem[];
+}
+
 // 意味検索 — Embed
 export interface EmbedNoteRequest {
   notePath: string;

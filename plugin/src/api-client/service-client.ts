@@ -5,6 +5,7 @@ import type {
   RunResponse,
   RollbackRequest,
   RollbackResponse,
+  RecentRunsResponse,
 } from "@vault-alchemist/shared";
 
 export class ServiceClient {
@@ -47,5 +48,9 @@ export class ServiceClient {
 
   rollback(run_id: string): Promise<RollbackResponse> {
     return this.request<RollbackResponse>("POST", "/rollback", { run_id } as RollbackRequest);
+  }
+
+  recentRuns(sinceHours = 24): Promise<RecentRunsResponse> {
+    return this.request<RecentRunsResponse>("GET", `/recent-runs?since_hours=${sinceHours}`);
   }
 }

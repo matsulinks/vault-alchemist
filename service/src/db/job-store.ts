@@ -53,6 +53,15 @@ export class JobStore {
     return this.readJson<RollbackLog>(path.join(this.rollbackDir, `${run_id}.json`));
   }
 
+  listRecentRollbacks(sinceHours: number = 24): RollbackLog[] {
+    if (!fs.existsSync(this.rollbackDir)) return [];
+    const cutoff = new Date(Date.now() - sinceHours * 60 * 60 * 1000).toISOString();
+    return fs.readdirSync(this.rollbackDir)
+      .map((f) => this.readJson<RollbackLog>(path.join(this.rollbackDir, f)))
+      .filter((log): log is RollbackLog => log !== null && log.created_at >= cutoff)
+      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  }
+
   private saveJob(job: Job): void {
     fs.writeFileSync(path.join(this.jobsDir, `${job.job_id}.json`), JSON.stringify(job, null, 2));
   }
