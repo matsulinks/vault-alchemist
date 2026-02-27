@@ -204,10 +204,93 @@
 
 ---
 
-## Phase 2 以降（未着手）
+## Phase 2: 意味検索（Semantic Search）
 
-- **Phase 2**: 意味検索（T031〜: Embedding生成・semantic.sqlite・検索UI）
-- **Phase 3**: タグ管理（T050〜: 4階層タグ・辞書・統合提案）
+> 既に `/embed` `/search` エンドポイント・`EmbeddingStore`・`chunkText`・`cosineSimilarity` は実装済み。
+> Phase 2 では「埋め込み済みノート一覧の管理」と「Obsidian 上の検索 UI」を完成させる。
+
+---
+
+### 🗄️ STEP 8: バックエンド補完
+
+#### T031: EmbeddingStore に埋め込み済みノート一覧クエリを追加
+- **内容**: `EmbeddingStore.listEmbeddedNotes()` を追加する。戻り値は `{ notePath, chunkCount, updatedAt }[]`。SQLite の `chunks` テーブルを `note_path` でグループ集計する
+- **完了条件**: ユニットテストで「2ノート埋め込み済み → 2件返る」が通る
+- **依存**: T009（EmbeddingStore は実装済み）
+
+#### T032: GET /embedded-notes エンドポイントを追加
+- **内容**: `router.get("/embedded-notes")` を追加。`EmbeddingStore.listEmbeddedNotes()` の結果を `{ items: EmbeddedNoteItem[] }` で返す。型定義を `shared/types/api.ts` に追加する
+- **完了条件**: `curl` で叩くと埋め込み済みノート一覧が返る
+- **依存**: T031
+
+#### T033: ServiceClient に embed / search / embeddedNotes メソッドを追加
+- **内容**: `plugin/src/api-client/service-client.ts` に3メソッドを追加する
+  - `embed(notePath)` → `EmbedNoteResponse`（既存エンドポイント呼び出し）
+  - `search(query, topK?)` → `SearchResponse`
+  - `embeddedNotes()` → `EmbeddedNotesResponse`
+- **完了条件**: TypeScript ビルドが通る
+- **依存**: T032
+
+---
+
+### 🔍 STEP 9: Search View UI
+
+#### T034: Search View の骨格を作る
+- **内容**: `plugin/src/views/search-view.ts` を新規作成し、`SEARCH_VIEW_TYPE = "vault-alchemist-search"` で登録する。`main.ts` でサイドパネルにタブを追加し、コマンド `vault-alchemist:open-search` で開けるようにする
+- **完了条件**: コマンドを実行すると「Semantic Search」タブが開く（中身は空でも可）
+- **依存**: T033
+
+#### T035: 検索窓とデバウンス検索の実装
+- **内容**: Search View に `<input type="text">` を追加する。300ms デバウンスで `client.search(query)` を呼び出し、結果を `this.results` に保存して `renderResults()` を呼ぶ。OpenAI キー未設定時は「APIキーを設定してください」と表示する
+- **完了条件**: 入力するたびに（300ms後）APIが呼ばれ、コンソールに結果件数が出る
+- **依存**: T034
+
+#### T036: 検索結果リストの表示
+- **内容**: `renderResults()` を実装する。各結果に notePath（ファイル名のみ）・スニペット（text の先頭100文字）・スコア（`(score * 100).toFixed(0) + "%"`）を表示する。結果0件のときは「見つかりませんでした」を表示する
+- **完了条件**: 検索すると結果カードが並ぶ
+- **依存**: T035
+
+#### T037: 検索結果からノートを開く
+- **内容**: 各結果カードにクリックイベントを追加する。`app.workspace.openLinkText(notePath, "", false)` でノートを開く。クリック時に結果カードをハイライト（`.is-active` クラス）する
+- **完了条件**: 結果をクリックするとそのノートが開く
+- **依存**: T036
+
+---
+
+### 🔌 STEP 10: Embed ワークフロー（Chat Cleaner 連携）
+
+#### T038: Chat Cleaner の各ノート行に「Embed」ボタンを追加
+- **内容**: `chat-cleaner-view.ts` のノートリスト行に「Embed」ボタンを追加する。押すと `client.embed(notePath)` を呼び出し、完了後に `Notice("埋め込み完了: X チャンク")` を表示する。実行中はボタンを `disabled` にしてテキストを「埋め込み中…」にする
+- **完了条件**: ボタンを押すとノートが埋め込まれ、Noticeが出る
+- **依存**: T033, T025
+
+#### T039: 埋め込み済みノートに「🔍」バッジを表示
+- **内容**: Chat Cleaner 起動時に `client.embeddedNotes()` を呼んで埋め込み済み notePath のセットを作る。ノートリスト行の描画時に、セットに含まれる場合は「🔍」バッジ（`<span class="va-badge-embedded">`）を追加する。Embed 完了後にバッジを即時追加する
+- **完了条件**: 埋め込み済みノートに🔍が表示され、Embed後に自動で追加される
+- **依存**: T038
+
+#### T040: semantic_search フラグの有効化 + Home 画面に検索ショートカット追加
+- **内容**: `shared/src/types/provider.ts` の `DEFAULT_FEATURE_FLAGS` で `semantic_search: true` に変更する。Home 画面の「クイックアクション」セクションに「🔍 Semantic Search を開く」ボタンを追加する
+- **完了条件**: Home 画面のボタンで Search View が開く
+- **依存**: T034, T039
+
+---
+
+### ✅ Phase 2 完了の定義
+
+以下がすべて動作すれば完成：
+
+1. Chat Cleaner からノートを Embed できる
+2. 埋め込み済みノートに🔍バッジが表示される
+3. Semantic Search タブで日本語クエリを入力すると関連ノートが出る
+4. 結果をクリックするとノートが開く
+5. Home 画面から Search を開けるショートカットがある
+
+---
+
+## Phase 3 以降（未着手）
+
+- **Phase 3**: タグ管理（T041〜: 4階層タグ・辞書・統合提案）
 - **Phase 4**: Graph レイヤー（Intent/Interest/Insight/Personality）
 - **Phase 5**: xAI（Grok）探索モード
 - **Phase 6**: ローカルLLM
