@@ -25,6 +25,19 @@ function withCatch(res: Response, fn: () => unknown): void {
   Promise.resolve(fn()).catch((e: any) => res.status(500).json({ error: e.message }));
 }
 
+function requireVault(req: Request, res: Response): string | null {
+  const v = req.headers["x-vault-path"] as string;
+  if (!v) { res.status(400).json({ error: "x-vault-path header required" }); return null; }
+  return v;
+}
+
+function requireVaultAndKey(req: Request, res: Response): { vaultPath: string; apiKey: string } | null {
+  const v = req.headers["x-vault-path"] as string;
+  const k = req.headers["x-openai-key"] as string;
+  if (!v || !k) { res.status(400).json({ error: "x-vault-path and x-openai-key headers required" }); return null; }
+  return { vaultPath: v, apiKey: k };
+}
+
 function makeEngine(vaultPath: string, apiKey?: string): ApplyEngine {
   return new ApplyEngine(vaultPath, new JobStore(vaultPath), apiKey ? getProvider(apiKey) : null);
 }
@@ -43,9 +56,9 @@ export function createApiRouter(startedAt: number): Router {
 
   router.post("/estimate", (req: Request, res: Response) => {
     const { notePath } = req.body as EstimateRequest;
-    const vaultPath = req.headers["x-vault-path"] as string;
-    if (!notePath || !vaultPath) {
-      res.status(400).json({ error: "notePath and x-vault-path header required" });
+    const vaultPath = requireVault(req, res);
+    if (!vaultPath || !notePath) {
+      if (vaultPath) res.status(400).json({ error: "notePath required" });
       return;
     }
     withCatch(res, () => res.json(estimateNote(nodePath.join(vaultPath, notePath))));
@@ -53,41 +66,35 @@ export function createApiRouter(startedAt: number): Router {
 
   router.post("/run", (req: Request, res: Response) => {
     const body = req.body as RunRequest;
-    const vaultPath = req.headers["x-vault-path"] as string;
-    const apiKey = req.headers["x-openai-key"] as string | undefined;
-    if (!body.notePath || !vaultPath) {
-      res.status(400).json({ error: "notePath and x-vault-path header required" });
+    const vaultPath = requireVault(req, res);
+    if (!vaultPath || !body.notePath) {
+      if (vaultPath) res.status(400).json({ error: "notePath required" });
       return;
     }
+    const apiKey = req.headers["x-openai-key"] as string | undefined;
     withCatch(res, async () => res.json(await makeEngine(vaultPath, apiKey).run(body)));
   });
 
   router.post("/rollback", (req: Request, res: Response) => {
     const body = req.body as RollbackRequest;
-    const vaultPath = req.headers["x-vault-path"] as string;
-    if (!body.run_id || !vaultPath) {
-      res.status(400).json({ error: "run_id and x-vault-path header required" });
+    const vaultPath = requireVault(req, res);
+    if (!vaultPath || !body.run_id) {
+      if (vaultPath) res.status(400).json({ error: "run_id required" });
       return;
     }
     withCatch(res, async () => res.json(await makeEngine(vaultPath).rollback(body)));
   });
 
   router.get("/jobs", (req: Request, res: Response) => {
-    const vaultPath = req.headers["x-vault-path"] as string;
-    if (!vaultPath) {
-      res.status(400).json({ error: "x-vault-path header required" });
-      return;
-    }
+    const vaultPath = requireVault(req, res);
+    if (!vaultPath) return;
     const runId = req.query["run_id"] as string | undefined;
     res.json({ items: runId ? new JobStore(vaultPath).listByRunId(runId) : [] });
   });
 
   router.get("/recent-runs", (req: Request, res: Response) => {
-    const vaultPath = req.headers["x-vault-path"] as string;
-    if (!vaultPath) {
-      res.status(400).json({ error: "x-vault-path header required" });
-      return;
-    }
+    const vaultPath = requireVault(req, res);
+    if (!vaultPath) return;
     const sinceHours = parseInt(req.query["since_hours"] as string) || 24;
     const logs = new JobStore(vaultPath).listRecentRollbacks(sinceHours);
     const body: RecentRunsResponse = {
@@ -103,11 +110,8 @@ export function createApiRouter(startedAt: number): Router {
   });
 
   router.get("/embedded-notes", (req: Request, res: Response) => {
-    const vaultPath = req.headers["x-vault-path"] as string;
-    if (!vaultPath) {
-      res.status(400).json({ error: "x-vault-path header required" });
-      return;
-    }
+    const vaultPath = requireVault(req, res);
+    if (!vaultPath) return;
     const body: EmbeddedNotesResponse = {
       items: new EmbeddingStore(getDb(vaultPath)).listEmbeddedNotes(),
     };
@@ -116,12 +120,12 @@ export function createApiRouter(startedAt: number): Router {
 
   router.post("/embed", (req: Request, res: Response) => {
     const { notePath } = req.body as EmbedNoteRequest;
-    const vaultPath = req.headers["x-vault-path"] as string;
-    const apiKey = req.headers["x-openai-key"] as string | undefined;
-    if (!notePath || !vaultPath || !apiKey) {
-      res.status(400).json({ error: "notePath, x-vault-path and x-openai-key required" });
+    const headers = requireVaultAndKey(req, res);
+    if (!headers || !notePath) {
+      if (headers) res.status(400).json({ error: "notePath required" });
       return;
     }
+    const { vaultPath, apiKey } = headers;
     withCatch(res, async () => {
       const t0 = Date.now();
       const text = fs.readFileSync(nodePath.join(vaultPath, notePath), "utf-8");
@@ -143,12 +147,12 @@ export function createApiRouter(startedAt: number): Router {
   router.get("/search", (req: Request, res: Response) => {
     const query = req.query["q"] as string | undefined;
     const topK = Math.min(parseInt(req.query["top_k"] as string) || 5, 20);
-    const vaultPath = req.headers["x-vault-path"] as string;
-    const apiKey = req.headers["x-openai-key"] as string | undefined;
-    if (!query || !vaultPath || !apiKey) {
-      res.status(400).json({ error: "q param, x-vault-path and x-openai-key required" });
+    const headers = requireVaultAndKey(req, res);
+    if (!headers || !query) {
+      if (headers) res.status(400).json({ error: "q param required" });
       return;
     }
+    const { vaultPath, apiKey } = headers;
     withCatch(res, async () => {
       const t0 = Date.now();
       const { vector: qVec } = await getProvider(apiKey).embed(query);

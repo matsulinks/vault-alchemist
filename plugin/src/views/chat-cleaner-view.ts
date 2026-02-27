@@ -1,10 +1,11 @@
-import { ItemView, WorkspaceLeaf, TFile, Notice } from "obsidian";
+import { WorkspaceLeaf, TFile, Notice } from "obsidian";
 import type { EstimateResponse, RunResponse, ThreadPreview, ApplyMode } from "@vault-alchemist/shared";
 import type { ServiceClient } from "../api-client/service-client.js";
+import { VaultAlchemistView } from "./base-view.js";
 
 export const CHAT_CLEANER_VIEW_TYPE = "vault-alchemist-chat-cleaner";
 
-export class ChatCleanerView extends ItemView {
+export class ChatCleanerView extends VaultAlchemistView {
   private selectedNote: TFile | null = null;
   private lastEstimate: EstimateResponse | null = null;
   private lastRunResult: RunResponse | null = null;
@@ -27,9 +28,7 @@ export class ChatCleanerView extends ItemView {
   }
 
   private render(): void {
-    const root = this.containerEl.children[1] as HTMLElement;
-    root.empty();
-    root.addClass("va-chat-cleaner");
+    const root = this.getRoot("va-chat-cleaner");
 
     root.createEl("h2", { text: "Chat Cleaner" });
     root.createEl("p", { text: "会話ログをトピックごとに整理します", cls: "va-subtitle" });
@@ -90,7 +89,7 @@ export class ChatCleanerView extends ItemView {
     sec.createEl("h3", { text: "事前スキャン" });
     if (!this.lastEstimate) {
       this.btn(sec, "Estimate（推定）", "va-btn-primary", async () => {
-        this.lastEstimate = await this.call(() => this.client.estimate(this.selectedNote!.path));
+        this.lastEstimate = await this.callApi(() => this.client.estimate(this.selectedNote!.path));
         this.render();
       });
       return;
@@ -125,7 +124,7 @@ export class ChatCleanerView extends ItemView {
 
     if (r.applyMode !== "dry_run") {
       this.btn(sec, "↩ Undo（元に戻す）", "va-btn-undo", async () => {
-        const res = await this.call(() => this.client.rollback(r.run_id));
+        const res = await this.callApi(() => this.client.rollback(r.run_id));
         if (res) { new Notice(`ロールバック完了: ${res.restoredPath}`); this.lastRunResult = null; this.render(); }
       });
     } else {
@@ -138,7 +137,7 @@ export class ChatCleanerView extends ItemView {
   }
 
   private async execRun(mode: ApplyMode): Promise<void> {
-    const result = await this.call(() =>
+    const result = await this.callApi(() =>
       this.client.run({ notePath: this.selectedNote!.path, applyMode: mode, precision: "fast" })
     );
     if (result) {
@@ -148,14 +147,4 @@ export class ChatCleanerView extends ItemView {
     }
   }
 
-  private btn(parent: HTMLElement, text: string, cls: string, onClick: () => void): HTMLButtonElement {
-    const b = parent.createEl("button", { text, cls: `va-btn ${cls}` });
-    b.addEventListener("click", onClick);
-    return b;
-  }
-
-  private async call<T>(fn: () => Promise<T>): Promise<T | null> {
-    try { return await fn(); }
-    catch (e: any) { new Notice(`エラー: ${e.message}`); return null; }
-  }
 }

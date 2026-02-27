@@ -1,10 +1,11 @@
-import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
+import { WorkspaceLeaf } from "obsidian";
 import type { SearchResultItem } from "@vault-alchemist/shared";
 import type { ServiceClient } from "../api-client/service-client.js";
+import { VaultAlchemistView } from "./base-view.js";
 
 export const SEARCH_VIEW_TYPE = "vault-alchemist-search";
 
-export class SearchView extends ItemView {
+export class SearchView extends VaultAlchemistView {
   private results: SearchResultItem[] = [];
   private debounceTimer: ReturnType<typeof setTimeout> | null = null;
   private resultsEl!: HTMLElement;
@@ -18,9 +19,7 @@ export class SearchView extends ItemView {
   getIcon(): string { return "search"; }
 
   async onOpen(): Promise<void> {
-    const container = this.containerEl.children[1] as HTMLElement;
-    container.empty();
-    container.addClass("va-search");
+    const container = this.getRoot("va-search");
 
     container.createEl("h2", { text: "🔍 Semantic Search" });
 
@@ -44,13 +43,8 @@ export class SearchView extends ItemView {
       this.renderResults();
       return;
     }
-    try {
-      const res = await this.client.search(query, 10);
-      this.results = res.results;
-    } catch (e: any) {
-      new Notice(`検索エラー: ${e.message}`);
-      this.results = [];
-    }
+    const res = await this.callApi(() => this.client.search(query, 10));
+    this.results = res?.results ?? [];
     this.renderResults();
   }
 

@@ -1,10 +1,11 @@
-import { ItemView, WorkspaceLeaf, Notice } from "obsidian";
+import { WorkspaceLeaf, Notice } from "obsidian";
 import type { RecentRunItem } from "@vault-alchemist/shared";
 import type { ServiceClient } from "../api-client/service-client.js";
+import { VaultAlchemistView } from "./base-view.js";
 
 export const HOME_VIEW_TYPE = "vault-alchemist-home";
 
-export class HomeView extends ItemView {
+export class HomeView extends VaultAlchemistView {
   private recentRuns: RecentRunItem[] = [];
 
   constructor(leaf: WorkspaceLeaf, private client: ServiceClient) {
@@ -30,9 +31,7 @@ export class HomeView extends ItemView {
   }
 
   private render(): void {
-    const container = this.containerEl.children[1] as HTMLElement;
-    container.empty();
-    container.addClass("va-home");
+    const container = this.getRoot("va-home");
 
     const header = container.createDiv("va-header");
     header.createEl("h1", { text: "📖 Vault Alchemist" });
@@ -75,20 +74,15 @@ export class HomeView extends ItemView {
         }
       }
 
-      const undoBtn = item.createEl("button", {
-        text: "↩ Undo",
-        cls: "va-btn va-btn-undo",
-      });
-      undoBtn.addEventListener("click", async () => {
+      const undoBtn = this.btn(item, "↩ Undo", "va-btn-undo", async () => {
         undoBtn.disabled = true;
         undoBtn.textContent = "戻し中...";
-        try {
-          const res = await this.client.rollback(run.run_id);
+        const res = await this.callApi(() => this.client.rollback(run.run_id));
+        if (res) {
           new Notice(`ロールバック完了: ${res.restoredPath}`);
           this.recentRuns = this.recentRuns.filter((r) => r.run_id !== run.run_id);
           this.render();
-        } catch (e: any) {
-          new Notice(`失敗: ${e.message}`);
+        } else {
           undoBtn.disabled = false;
           undoBtn.textContent = "↩ Undo";
         }
@@ -100,19 +94,10 @@ export class HomeView extends ItemView {
     const sec = container.createDiv("va-section va-actions");
     sec.createEl("h3", { text: "クイックアクション" });
 
-    const openCleanerBtn = sec.createEl("button", {
-      text: "Chat Cleaner を開く",
-      cls: "va-btn va-btn-primary",
-    });
-    openCleanerBtn.addEventListener("click", () => {
+    this.btn(sec, "Chat Cleaner を開く", "va-btn-primary", () => {
       (this.app as any).commands?.executeCommandById("vault-alchemist:open-chat-cleaner");
     });
-
-    const openSearchBtn = sec.createEl("button", {
-      text: "🔍 Semantic Search を開く",
-      cls: "va-btn va-btn-secondary",
-    });
-    openSearchBtn.addEventListener("click", () => {
+    this.btn(sec, "🔍 Semantic Search を開く", "va-btn-secondary", () => {
       (this.app as any).commands?.executeCommandById("vault-alchemist:open-search");
     });
   }

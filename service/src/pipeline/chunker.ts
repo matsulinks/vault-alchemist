@@ -1,4 +1,4 @@
-import * as crypto from "crypto";
+import { hashContent } from "./estimator.js";
 
 export interface TextChunk {
   chunkId: string;
@@ -37,7 +37,7 @@ export function chunkText(notePath: string, text: string): TextChunk[] {
 }
 
 function makeChunk(notePath: string, order: number, text: string): TextChunk {
-  const hash = crypto.createHash("sha256").update(text).digest("hex").slice(0, 16);
+  const hash = hashContent(text).slice(0, 16);
   const safeKey = notePath.replace(/[^a-z0-9]/gi, "_");
   return { chunkId: `${safeKey}_${order}`, text, hash, order };
 }
