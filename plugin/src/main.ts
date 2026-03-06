@@ -68,6 +68,19 @@ export default class VaultAlchemistPlugin extends Plugin {
       this.activateView(HOME_VIEW_TYPE);
     });
 
+    // 初回起動時: 設定画面を自動で開く
+    if (!this.settings.firstLaunchDone) {
+      this.settings.firstLaunchDone = true;
+      await this.saveSettings();
+      // レイアウト準備後に設定を開く
+      this.app.workspace.onLayoutReady(() => {
+        // @ts-ignore
+        this.app.setting.open();
+        // @ts-ignore
+        this.app.setting.openTabById("vault-alchemist");
+      });
+    }
+
     console.log("[vault-alchemist] plugin loaded");
   }
 
