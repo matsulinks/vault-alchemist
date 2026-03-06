@@ -1,106 +1,69 @@
 #!/bin/bash
-# Vault Alchemist — かんたんインストーラー
-# 使い方:
+# Vault Alchemist installer
+# Usage:
 #   curl -fsSL https://raw.githubusercontent.com/matsulinks/vault-alchemist/main/scripts/install.sh -o /tmp/va-install.sh && bash /tmp/va-install.sh
 
 set -e
 
-# stdin をターミナルに繋ぎ直す（curl | bash 経由でも入力できるように）
 exec </dev/tty
 
 echo ""
-echo "========================================"
-echo "  Vault Alchemist インストーラー"
-echo "========================================"
+echo "  Vault Alchemist"
 echo ""
 
 # ─────────────────────────────────────────────
-# 1. Node.js確認
+# 1. Node.js
 # ─────────────────────────────────────────────
 if ! command -v node &>/dev/null; then
-  echo "✗ Node.js がインストールされていません"
-  echo "  → https://nodejs.org から LTS版をインストールしてください"
+  echo "Error: Node.js is not installed."
+  echo "  → Install LTS from https://nodejs.org"
   exit 1
 fi
 
 NODE_MAJOR=$(node --version | sed 's/v\([0-9]*\).*/\1/')
 if [ "$NODE_MAJOR" -lt 18 ]; then
-  echo "✗ Node.js v18以上が必要です（現在: $(node --version)）"
-  echo "  → https://nodejs.org から LTS版をインストールしてください"
+  echo "Error: Node.js v18+ required (found $(node --version))"
+  echo "  → Install LTS from https://nodejs.org"
   exit 1
 fi
-echo "✓ Node.js $(node --version)"
 
 # ─────────────────────────────────────────────
-# 2. ダウンロード & ビルド
+# 2. Download & build
 # ─────────────────────────────────────────────
 INSTALL_DIR="$HOME/vault-alchemist"
 
 if [ -d "$INSTALL_DIR/.git" ]; then
-  echo "[install] 既存のインストールを更新中..."
-  cd "$INSTALL_DIR"
-  git pull --quiet
+  cd "$INSTALL_DIR" && git pull --quiet
 else
   rm -rf "$INSTALL_DIR"
-  echo "[install] ダウンロード中..."
   git clone --quiet https://github.com/matsulinks/vault-alchemist "$INSTALL_DIR"
   cd "$INSTALL_DIR"
 fi
 
-echo "[install] セットアップ中（1〜2分かかります）..."
 npm install --quiet 2>/dev/null
 npm run build --silent 2>/dev/null
-echo "✓ ビルド完了"
 
 # ─────────────────────────────────────────────
-# 3. Obsidian Vaultを自動検出
+# 3. Detect Obsidian vault
 # ─────────────────────────────────────────────
 OBSIDIAN_CONFIG="$HOME/Library/Application Support/obsidian/obsidian.json"
-VAULTS=()
+VAULT_PATH=""
 
-# obsidian.jsonから取得（最近使った順にソート）
-ACTIVE_VAULT=""
 if [ -f "$OBSIDIAN_CONFIG" ]; then
-  # open:trueのVaultを優先、なければtsが新しい順
-  ACTIVE_VAULT=$(python3 -c "
+  VAULT_PATH=$(python3 -c "
 import json, sys
 data = json.load(open(sys.argv[1], encoding='utf-8'))
 vaults = list(data.get('vaults', {}).values())
-# open:true のものを最優先
 open_vaults = [v for v in vaults if v.get('open')]
 if open_vaults:
     print(open_vaults[0].get('path', ''))
 else:
-    # 最後に使った(ts最大)ものを選ぶ
     vaults.sort(key=lambda v: v.get('ts', 0), reverse=True)
     print(vaults[0].get('path', '') if vaults else '')
 " "$OBSIDIAN_CONFIG" 2>/dev/null)
-
-  # 全Vaultも取得しておく（選択肢用）
-  while IFS= read -r p; do
-    [ -d "$p" ] && VAULTS+=("$p")
-  done < <(python3 -c "
-import json, sys
-data = json.load(open(sys.argv[1], encoding='utf-8'))
-vaults = sorted(data.get('vaults', {}).values(), key=lambda v: v.get('ts', 0), reverse=True)
-for v in vaults:
-    path = v.get('path', '')
-    if path: print(path)
-" "$OBSIDIAN_CONFIG" 2>/dev/null)
 fi
 
-# ─────────────────────────────────────────────
-# 4. Vault決定（自動・質問なし）
-# ─────────────────────────────────────────────
-VAULT_PATH=""
-
-# open:true または ts最大のVaultを自動選択
-if [ -n "$ACTIVE_VAULT" ] && [ -d "$ACTIVE_VAULT" ]; then
-  VAULT_PATH="$ACTIVE_VAULT"
-fi
-
-# obsidian.jsonで見つからなければ .obsidian フォルダを検索
-if [ -z "$VAULT_PATH" ]; then
+if [ -z "$VAULT_PATH" ] || [ ! -d "$VAULT_PATH" ]; then
   SEARCH_DIRS=(
     "$HOME/Documents"
     "$HOME/Desktop"
@@ -113,45 +76,18 @@ if [ -z "$VAULT_PATH" ]; then
 fi
 
 if [ -z "$VAULT_PATH" ] || [ ! -d "$VAULT_PATH" ]; then
-  echo ""
-  echo "✗ Obsidian Vaultが見つかりませんでした"
-  echo "  Obsidianを一度起動してから再実行してください"
-  exit 1
-fi
-
-echo "✓ Vault: $(basename "$VAULT_PATH")"
-
-if [ ! -d "$VAULT_PATH" ]; then
-  echo "✗ フォルダが見つかりません: $VAULT_PATH"
+  echo "Error: Obsidian vault not found. Please open Obsidian first and try again."
   exit 1
 fi
 
 # ─────────────────────────────────────────────
-# 5. デプロイ
+# 4. Deploy
 # ─────────────────────────────────────────────
 PLUGIN_DIR="$VAULT_PATH/.obsidian/plugins/vault-alchemist"
-echo ""
-echo "[install] Obsidianにインストール中..."
 mkdir -p "$PLUGIN_DIR/service/dist"
 cp plugin/manifest.json "$PLUGIN_DIR/"
 cp plugin/dist/main.js "$PLUGIN_DIR/"
 cp -r service/dist/* "$PLUGIN_DIR/service/dist/"
-echo "✓ インストール完了"
 
-# ─────────────────────────────────────────────
-# 完了
-# ─────────────────────────────────────────────
-echo ""
-echo "========================================"
-echo "  インストール完了！"
-echo "========================================"
-echo ""
-echo "次の手順:"
-echo ""
-echo "  1. Obsidianを再起動する"
-echo "  2. 設定 → コミュニティプラグイン → 制限モードをオフにする"
-echo "  3. 一覧から「Vault Alchemist」を有効にする"
-echo "  4. 設定 → Vault Alchemist → OpenAI APIキーを入力"
-echo ""
-echo "  APIキーの取得: https://platform.openai.com/api-keys"
+echo "  Done. Open Obsidian to get started."
 echo ""
