@@ -171,11 +171,14 @@ AIが全体のコンテキストを把握したまま作業できる。
 
 ## インストール方法
 
-1. [Releases ページ](../../releases/latest) を開く
-2. 「Assets」の中から `main.js` と `manifest.json` の **2つ** をダウンロード
-3. Obsidian の Vault フォルダの中に `.obsidian/plugins/vault-alchemist/` フォルダを作る
-4. ダウンロードした 2 つのファイルをそのフォルダに入れる
-5. Obsidian を開いて「設定 → コミュニティプラグイン → Vault Alchemist を有効化」
+ターミナルで以下の1行を実行するだけです：
+
+```bash
+curl -sL https://raw.githubusercontent.com/matsulinks/vault-alchemist/main/install.sh | bash
+```
+
+自動でObsidianの保管庫を探してインストールします。
+完了したら「設定 → コミュニティプラグイン → Vault Alchemist を有効化」するだけです。
 
 ---
 
