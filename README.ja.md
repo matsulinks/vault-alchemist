@@ -169,6 +169,19 @@ AIが全体のコンテキストを把握したまま作業できる。
 
 ---
 
+## インストール方法
+
+ターミナルで以下の1行を実行するだけです：
+
+```bash
+curl -sL https://raw.githubusercontent.com/matsulinks/vault-alchemist/main/install.sh | bash
+```
+
+自動でObsidianの保管庫を探してインストールします。
+完了したら「設定 → コミュニティプラグイン → Vault Alchemist を有効化」するだけです。
+
+---
+
 ## 使い始めるには（コントリビューター向け）
 
 ```bash

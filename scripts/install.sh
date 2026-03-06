@@ -84,10 +84,19 @@ fi
 # 4. Deploy
 # ─────────────────────────────────────────────
 PLUGIN_DIR="$VAULT_PATH/.obsidian/plugins/vault-alchemist"
+IS_UPDATE=false
+[ -f "$PLUGIN_DIR/main.js" ] && IS_UPDATE=true
+
 mkdir -p "$PLUGIN_DIR/service/dist"
 cp plugin/manifest.json "$PLUGIN_DIR/"
 cp plugin/dist/main.js "$PLUGIN_DIR/"
 cp -r service/dist/* "$PLUGIN_DIR/service/dist/"
 
-echo "  Done. Open Obsidian to get started."
+if $IS_UPDATE; then
+  touch "$PLUGIN_DIR/.updated"
+  echo "  Updated."
+else
+  echo "  Installed."
+  open "https://matsulinks.github.io/vault-alchemist/start"
+fi
 echo ""

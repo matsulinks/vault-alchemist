@@ -1,8 +1,12 @@
 import { Plugin, Notice, WorkspaceLeaf } from "obsidian";
+import * as fs from "fs";
+import * as path from "path";
 import { ServiceManager } from "./service-manager.js";
 import { ServiceClient } from "./api-client/service-client.js";
 import { VaultAlchemistSettings, DEFAULT_SETTINGS } from "./settings.js";
 import { VaultAlchemistSettingTab } from "./settings-tab.js";
+import { getValidToken } from "./oauth.js";
+import { reportError } from "./error-reporter.js";
 import {
   ChatCleanerView,
   CHAT_CLEANER_VIEW_TYPE,
@@ -16,6 +20,15 @@ export default class VaultAlchemistPlugin extends Plugin {
   private client!: ServiceClient;
 
   async onload() {
+    try {
+      await this._init();
+    } catch (e) {
+      reportError("onload", e);
+      throw e; // Obsidian にもエラーを伝える
+    }
+  }
+
+  private async _init() {
     await this.loadSettings();
 
     this.serviceManager = new ServiceManager(this.app, this.settings);
@@ -24,10 +37,12 @@ export default class VaultAlchemistPlugin extends Plugin {
 
     const vaultPath =
       (this.app.vault.adapter as any).basePath ?? "";
+
+    const initialKey = await this.resolveApiKey();
     this.client = new ServiceClient(
       this.serviceManager.getBaseUrl(),
       vaultPath,
-      this.settings.openaiApiKey || undefined
+      initialKey
     );
 
     // ビューの登録
@@ -81,12 +96,53 @@ export default class VaultAlchemistPlugin extends Plugin {
       });
     }
 
+    // インストーラーからの更新を検知して自動リロード
+    this.startUpdateWatcher();
+
     console.log("[vault-alchemist] plugin loaded");
   }
 
   onunload() {
-    this.serviceManager.stop();
+    this.serviceManager?.stop();
     console.log("[vault-alchemist] plugin unloaded");
+  }
+
+  /** 現在の設定から有効なAPIキー（またはOAuthトークン）を返す */
+  async resolveApiKey(): Promise<string | undefined> {
+    if (this.settings.authMode === "oauth") {
+      const { oauthAccessToken, oauthRefreshToken, oauthExpiresAt } = this.settings;
+      if (!oauthAccessToken || !oauthRefreshToken || !oauthExpiresAt) return undefined;
+      return getValidToken(oauthAccessToken, oauthRefreshToken, oauthExpiresAt, async (tokens) => {
+        this.settings.oauthAccessToken = tokens.accessToken;
+        this.settings.oauthRefreshToken = tokens.refreshToken;
+        this.settings.oauthExpiresAt = tokens.expiresAt;
+        await this.saveSettings();
+        this.client.updateApiKey(tokens.accessToken);
+      });
+    }
+    return this.settings.openaiApiKey || undefined;
+  }
+
+  /** settings-tab から呼ばれる: ServiceClient のキーをその場で更新する */
+  updateApiKey(key: string | undefined): void {
+    this.client.updateApiKey(key);
+  }
+
+  private startUpdateWatcher(): void {
+    const pluginDir = path.join(
+      (this.app.vault.adapter as any).basePath ?? "",
+      ".obsidian/plugins/vault-alchemist"
+    );
+    const sentinel = path.join(pluginDir, ".updated");
+
+    const timer = setInterval(async () => {
+      if (!fs.existsSync(sentinel)) return;
+      try { fs.unlinkSync(sentinel); } catch { /* ignore */ }
+      // @ts-ignore
+      await this.app.plugins.reloadPlugin("vault-alchemist");
+    }, 3000);
+
+    this.register(() => clearInterval(timer));
   }
 
   async loadSettings() {

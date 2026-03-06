@@ -12,11 +12,20 @@ import type {
 } from "@vault-alchemist/shared";
 
 export class ServiceClient {
+  private openaiKey?: string;
+
   constructor(
     private baseUrl: string,
     private vaultPath: string,
-    private openaiKey?: string
-  ) {}
+    openaiKey?: string
+  ) {
+    this.openaiKey = openaiKey;
+  }
+
+  /** OAuthトークン更新時などに呼ぶ */
+  updateApiKey(key: string | undefined): void {
+    this.openaiKey = key;
+  }
 
   private get headers(): Record<string, string> {
     const h: Record<string, string> = {

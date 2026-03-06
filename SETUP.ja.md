@@ -79,24 +79,15 @@ npm run build
 
 → エラーなく終わればOK。`plugin/dist/`、`service/dist/`、`shared/dist/` が作られる。
 
-### 4. Obsidianにデプロイする
+### 4. Obsidianにインストールする
+
+ユーザーと同じ方法でインストールする：
 
 ```bash
-./scripts/deploy-plugin.sh /path/to/your-obsidian-vault
+curl -sL https://raw.githubusercontent.com/matsulinks/vault-alchemist/main/install.sh | bash
 ```
 
-**`/path/to/your-obsidian-vault` の部分は自分のVaultのパスに変える。**
-
-例:
-```bash
-# Macの場合
-./scripts/deploy-plugin.sh ~/Documents/MyVault
-
-# Windowsの場合（WSLを使っているなら）
-./scripts/deploy-plugin.sh /mnt/c/Users/自分の名前/Documents/MyVault
-```
-
-→ `[deploy] Done!` と表示されたら成功。
+→ 自動でVaultを検出してファイルを配置する。完了メッセージが出たら成功。
 
 ### 5. Obsidianでプラグインを有効にする
 
@@ -131,8 +122,8 @@ npm run test
 # 4. ビルド
 npm run build
 
-# 5. Obsidianにデプロイ（コードを変えた場合のみ）
-./scripts/deploy-plugin.sh /path/to/your-obsidian-vault
+# 5. Obsidianにインストール（コードを変えた場合のみ）
+curl -sL https://raw.githubusercontent.com/matsulinks/vault-alchemist/main/install.sh | bash
 ```
 
 ### コードを書いて確認したいとき
@@ -470,7 +461,10 @@ pkill -f "vault-alchemist"
 
 1. Obsidianを完全に終了して再起動する
 2. 設定 → コミュニティプラグイン → 右上の「再読み込み」ボタンを押す
-3. それでも出ない場合: `deploy-plugin.sh` を再実行してからObsidianを再起動する
+3. それでも出ない場合: インストーラーを再実行してからObsidianを再起動する
+   ```bash
+   curl -sL https://raw.githubusercontent.com/matsulinks/vault-alchemist/main/install.sh | bash
+   ```
 
 ---
 

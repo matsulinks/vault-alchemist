@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            plugin/dist/main.js
+            plugin/manifest.json
+          body: |
+            ## インストール方法
+
+            1. 下の「Assets」から `main.js` と `manifest.json` をダウンロード
+            2. Obsidian の Vault フォルダの中に `.obsidian/plugins/vault-alchemist/` フォルダを作る
+            3. ダウンロードした 2 つのファイルをそのフォルダに入れる
+            4. Obsidian を開いて「設定 → コミュニティプラグイン → Vault Alchemist を有効化」
