@@ -1,0 +1,10 @@
+{
+  "id": "vault-alchemist",
+  "name": "Vault Alchemist",
+  "version": "0.1.0",
+  "minAppVersion": "1.4.0",
+  "description": "Turn your Obsidian vault into an AI-powered knowledge asset.",
+  "author": "matsulinks",
+  "authorUrl": "https://github.com/matsulinks",
+  "isDesktopOnly": true
+}

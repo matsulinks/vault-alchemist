@@ -154,7 +154,7 @@ Contributors welcome — human or AI.
 | Phase | Focus | Status |
 |---|---|---|
 | Phase 1 | Chat splitting · cover generation · rollback UI | 🚧 In progress |
-| Phase 2 | Semantic search (embeddings) | Not started |
+| Phase 2 | Semantic search (embeddings) | ✅ Backend implemented |
 | Phase 3 | Tag hierarchy & dictionary | Not started |
 | Phase 4 | Knowledge graph (Intent / Insight / Interest) | Not started |
 | Phase 5 | xAI exploration mode | Not started |
@@ -171,7 +171,7 @@ cd vault-alchemist
 npm install
 ```
 
-Requirements: Node.js 18+, Obsidian 1.0+
+Requirements: Node.js 22+, Obsidian 1.0+
 
 The backend service starts automatically when Obsidian loads. No separate installation step.
 
