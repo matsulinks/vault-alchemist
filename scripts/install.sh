@@ -58,24 +58,35 @@ echo "✓ ビルド完了"
 OBSIDIAN_CONFIG="$HOME/Library/Application Support/obsidian/obsidian.json"
 VAULTS=()
 
-# まずobsidian.jsonから取得
+# obsidian.jsonから取得（最近使った順にソート）
+ACTIVE_VAULT=""
 if [ -f "$OBSIDIAN_CONFIG" ]; then
-  echo "[debug] obsidian.json が見つかりました"
+  # open:trueのVaultを優先、なければtsが新しい順
+  ACTIVE_VAULT=$(python3 -c "
+import json, sys
+data = json.load(open(sys.argv[1], encoding='utf-8'))
+vaults = list(data.get('vaults', {}).values())
+# open:true のものを最優先
+open_vaults = [v for v in vaults if v.get('open')]
+if open_vaults:
+    print(open_vaults[0].get('path', ''))
+else:
+    # 最後に使った(ts最大)ものを選ぶ
+    vaults.sort(key=lambda v: v.get('ts', 0), reverse=True)
+    print(vaults[0].get('path', '') if vaults else '')
+" "$OBSIDIAN_CONFIG" 2>/dev/null)
+
+  # 全Vaultも取得しておく（選択肢用）
   while IFS= read -r p; do
-    echo "[debug] vault候補: $p"
     [ -d "$p" ] && VAULTS+=("$p")
   done < <(python3 -c "
 import json, sys
-try:
-    data = json.load(open(sys.argv[1], encoding='utf-8'))
-    for v in data.get('vaults', {}).values():
-        path = v.get('path', '')
-        if path: print(path)
-except Exception as e:
-    print('ERROR:', e, file=sys.stderr)
+data = json.load(open(sys.argv[1], encoding='utf-8'))
+vaults = sorted(data.get('vaults', {}).values(), key=lambda v: v.get('ts', 0), reverse=True)
+for v in vaults:
+    path = v.get('path', '')
+    if path: print(path)
 " "$OBSIDIAN_CONFIG" 2>/dev/null)
-else
-  echo "[debug] obsidian.json が見つかりません: $OBSIDIAN_CONFIG"
 fi
 
 # 見つからなければ .obsidian フォルダを探す（iCloudも含む）
@@ -94,36 +105,27 @@ if [ ${#VAULTS[@]} -eq 0 ]; then
   done < <(find "${SEARCH_DIRS[@]}" -maxdepth 4 -name ".obsidian" -type d 2>/dev/null | grep -v "vault-alchemist")
 fi
 
-echo "[検出] ${#VAULTS[@]}個のVaultが見つかりました"
-
 # ─────────────────────────────────────────────
 # 4. Vaultの選択
 # ─────────────────────────────────────────────
 echo ""
 VAULT_PATH=""
 
-if [ ${#VAULTS[@]} -eq 0 ]; then
+# アクティブなVaultが見つかっていればそれを使う
+if [ -n "$ACTIVE_VAULT" ] && [ -d "$ACTIVE_VAULT" ]; then
+  VAULT_PATH="$ACTIVE_VAULT"
+  echo "✓ Vault: $VAULT_PATH"
+elif [ ${#VAULTS[@]} -eq 0 ]; then
   echo "ObsidianのVaultが見つかりませんでした。"
   echo "Vaultフォルダをこのウィンドウにドラッグ&ドロップして、Enterを押してください："
   read -r VAULT_PATH
-  # ドラッグ&ドロップ時のスペースエスケープを解除
   VAULT_PATH="${VAULT_PATH//\\ / }"
-  VAULT_PATH="${VAULT_PATH%/}"  # 末尾スラッシュ除去
+  VAULT_PATH="${VAULT_PATH%/}"
 elif [ ${#VAULTS[@]} -eq 1 ]; then
   VAULT_PATH="${VAULTS[0]}"
-  echo "Vaultが見つかりました:"
-  echo "  $VAULT_PATH"
-  echo ""
-  printf "このVaultにインストールしますか？ [Y/n]: "
-  read -r answer
-  if [[ "$answer" =~ ^[Nn]$ ]]; then
-    echo "Vaultフォルダをこのウィンドウにドラッグ&ドロップして、Enterを押してください："
-    read -r VAULT_PATH
-    VAULT_PATH="${VAULT_PATH//\\ / }"
-    VAULT_PATH="${VAULT_PATH%/}"
-  fi
+  echo "✓ Vault: $VAULT_PATH"
 else
-  echo "複数のVaultが見つかりました。番号を入力してください："
+  echo "複数のVaultが見つかりました。使用するものの番号を入力してください："
   for i in "${!VAULTS[@]}"; do
     echo "  $((i+1)). ${VAULTS[$i]}"
   done
