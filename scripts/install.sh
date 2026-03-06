@@ -93,10 +93,10 @@ cp plugin/dist/main.js "$PLUGIN_DIR/"
 cp -r service/dist/* "$PLUGIN_DIR/service/dist/"
 
 if $IS_UPDATE; then
-  # 起動中のプラグインに更新を通知 → 自動リロード
   touch "$PLUGIN_DIR/.updated"
   echo "  Updated."
 else
-  echo "  Installed. Open Obsidian to get started."
+  echo "  Installed."
+  open "https://matsulinks.github.io/vault-alchemist/start"
 fi
 echo ""
