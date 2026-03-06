@@ -58,14 +58,22 @@ echo "✓ ビルド完了"
 OBSIDIAN_CONFIG="$HOME/Library/Application Support/obsidian/obsidian.json"
 VAULTS=()
 
-# まずobsidian.jsonから取得
+# まずobsidian.jsonから取得（python3で確実にパース）
 if [ -f "$OBSIDIAN_CONFIG" ]; then
-  while IFS= read -r line; do
-    if [[ "$line" =~ \"path\":\ *\"([^\"]+)\" ]]; then
-      p="${BASH_REMATCH[1]}"
-      [ -d "$p" ] && VAULTS+=("$p")
-    fi
-  done < "$OBSIDIAN_CONFIG"
+  while IFS= read -r p; do
+    [ -d "$p" ] && VAULTS+=("$p")
+  done < <(python3 - "$OBSIDIAN_CONFIG" 2>/dev/null <<'PYEOF'
+import json, sys
+try:
+    data = json.load(open(sys.argv[1], encoding="utf-8"))
+    for v in data.get("vaults", {}).values():
+        path = v.get("path", "")
+        if path:
+            print(path)
+except Exception:
+    pass
+PYEOF
+)
 fi
 
 # 見つからなければ .obsidian フォルダを探す（iCloudも含む）
