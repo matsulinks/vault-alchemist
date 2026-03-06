@@ -58,12 +58,22 @@ echo "✓ ビルド完了"
 OBSIDIAN_CONFIG="$HOME/Library/Application Support/obsidian/obsidian.json"
 VAULTS=()
 
+# まずobsidian.jsonから取得
 if [ -f "$OBSIDIAN_CONFIG" ]; then
   while IFS= read -r line; do
     if [[ "$line" =~ \"path\":\ *\"([^\"]+)\" ]]; then
-      VAULTS+=("${BASH_REMATCH[1]}")
+      p="${BASH_REMATCH[1]}"
+      [ -d "$p" ] && VAULTS+=("$p")
     fi
   done < "$OBSIDIAN_CONFIG"
+fi
+
+# 見つからなければ .obsidian フォルダを探す
+if [ ${#VAULTS[@]} -eq 0 ]; then
+  while IFS= read -r obsidian_dir; do
+    vault_dir="$(dirname "$obsidian_dir")"
+    VAULTS+=("$vault_dir")
+  done < <(find "$HOME" -maxdepth 5 -name ".obsidian" -type d 2>/dev/null | grep -v "vault-alchemist")
 fi
 
 # ─────────────────────────────────────────────
