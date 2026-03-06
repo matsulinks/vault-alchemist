@@ -4,12 +4,12 @@
   "description": "Turn your Obsidian vault into an AI-powered knowledge asset.",
   "private": true,
   "workspaces": [
+    "shared",
     "plugin",
-    "service",
-    "shared"
+    "service"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build -w shared && npm run build -w plugin && npm run build -w service",
     "dev": "npm run dev --workspaces --if-present",
     "deploy": "bash scripts/deploy-plugin.sh",
     "test": "npm run test --workspaces --if-present"
