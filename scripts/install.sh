@@ -68,13 +68,21 @@ if [ -f "$OBSIDIAN_CONFIG" ]; then
   done < "$OBSIDIAN_CONFIG"
 fi
 
-# 見つからなければ .obsidian フォルダを探す
+# 見つからなければ .obsidian フォルダを探す（iCloudも含む）
 if [ ${#VAULTS[@]} -eq 0 ]; then
+  SEARCH_DIRS=(
+    "$HOME/Documents"
+    "$HOME/Desktop"
+    "$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents"
+    "$HOME"
+  )
   while IFS= read -r obsidian_dir; do
     vault_dir="$(dirname "$obsidian_dir")"
     VAULTS+=("$vault_dir")
-  done < <(find "$HOME" -maxdepth 5 -name ".obsidian" -type d 2>/dev/null | grep -v "vault-alchemist")
+  done < <(find "${SEARCH_DIRS[@]}" -maxdepth 4 -name ".obsidian" -type d 2>/dev/null | grep -v "vault-alchemist")
 fi
+
+echo "[検出] ${#VAULTS[@]}個のVaultが見つかりました"
 
 # ─────────────────────────────────────────────
 # 4. Vaultの選択
