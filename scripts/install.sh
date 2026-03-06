@@ -40,8 +40,8 @@ else
   cd "$INSTALL_DIR"
 fi
 
-npm install --quiet 2>/dev/null
-npm run build --silent 2>/dev/null
+npm install --quiet >/dev/null 2>&1
+npm run build --silent >/dev/null 2>&1
 
 # ─────────────────────────────────────────────
 # 3. Detect Obsidian vault
