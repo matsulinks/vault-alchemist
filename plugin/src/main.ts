@@ -1,4 +1,6 @@
 import { Plugin, Notice, WorkspaceLeaf } from "obsidian";
+import * as fs from "fs";
+import * as path from "path";
 import { ServiceManager } from "./service-manager.js";
 import { ServiceClient } from "./api-client/service-client.js";
 import { VaultAlchemistSettings, DEFAULT_SETTINGS } from "./settings.js";
@@ -81,12 +83,32 @@ export default class VaultAlchemistPlugin extends Plugin {
       });
     }
 
+    // インストーラーからの更新を検知して自動リロード
+    this.startUpdateWatcher();
+
     console.log("[vault-alchemist] plugin loaded");
   }
 
   onunload() {
     this.serviceManager.stop();
     console.log("[vault-alchemist] plugin unloaded");
+  }
+
+  private startUpdateWatcher(): void {
+    const pluginDir = path.join(
+      (this.app.vault.adapter as any).basePath ?? "",
+      ".obsidian/plugins/vault-alchemist"
+    );
+    const sentinel = path.join(pluginDir, ".updated");
+
+    const timer = setInterval(async () => {
+      if (!fs.existsSync(sentinel)) return;
+      try { fs.unlinkSync(sentinel); } catch { /* ignore */ }
+      // @ts-ignore
+      await this.app.plugins.reloadPlugin("vault-alchemist");
+    }, 3000);
+
+    this.register(() => clearInterval(timer));
   }
 
   async loadSettings() {
