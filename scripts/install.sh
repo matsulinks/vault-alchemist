@@ -58,22 +58,24 @@ echo "✓ ビルド完了"
 OBSIDIAN_CONFIG="$HOME/Library/Application Support/obsidian/obsidian.json"
 VAULTS=()
 
-# まずobsidian.jsonから取得（python3で確実にパース）
+# まずobsidian.jsonから取得
 if [ -f "$OBSIDIAN_CONFIG" ]; then
+  echo "[debug] obsidian.json が見つかりました"
   while IFS= read -r p; do
+    echo "[debug] vault候補: $p"
     [ -d "$p" ] && VAULTS+=("$p")
-  done < <(python3 - "$OBSIDIAN_CONFIG" 2>/dev/null <<'PYEOF'
+  done < <(python3 -c "
 import json, sys
 try:
-    data = json.load(open(sys.argv[1], encoding="utf-8"))
-    for v in data.get("vaults", {}).values():
-        path = v.get("path", "")
-        if path:
-            print(path)
-except Exception:
-    pass
-PYEOF
-)
+    data = json.load(open(sys.argv[1], encoding='utf-8'))
+    for v in data.get('vaults', {}).values():
+        path = v.get('path', '')
+        if path: print(path)
+except Exception as e:
+    print('ERROR:', e, file=sys.stderr)
+" "$OBSIDIAN_CONFIG" 2>/dev/null)
+else
+  echo "[debug] obsidian.json が見つかりません: $OBSIDIAN_CONFIG"
 fi
 
 # 見つからなければ .obsidian フォルダを探す（iCloudも含む）
@@ -84,8 +86,10 @@ if [ ${#VAULTS[@]} -eq 0 ]; then
     "$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents"
     "$HOME"
   )
+  echo "[debug] .obsidian を検索中..."
   while IFS= read -r obsidian_dir; do
     vault_dir="$(dirname "$obsidian_dir")"
+    echo "[debug] 発見: $vault_dir"
     VAULTS+=("$vault_dir")
   done < <(find "${SEARCH_DIRS[@]}" -maxdepth 4 -name ".obsidian" -type d 2>/dev/null | grep -v "vault-alchemist")
 fi
