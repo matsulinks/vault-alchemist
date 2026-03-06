@@ -19,11 +19,11 @@ export class VaultAlchemistSettingTab extends PluginSettingTab {
     // 認証モード選択
     new Setting(containerEl)
       .setName("認証方法")
-      .setDesc("APIキーを直接入力するか、ChatGPT Max のアカウントで連携するかを選択します。")
+      .setDesc("APIキーを直接入力するか、ChatGPT Plus / Max のアカウントで連携するかを選択します。")
       .addDropdown((drop) =>
         drop
           .addOption("apikey", "APIキー")
-          .addOption("oauth", "ChatGPT Max（OAuth）")
+          .addOption("oauth", "ChatGPT Plus / Max（OAuth）")
           .setValue(this.plugin.settings.authMode)
           .onChange(async (value) => {
             this.plugin.settings.authMode = value as "apikey" | "oauth";
@@ -50,10 +50,10 @@ export class VaultAlchemistSettingTab extends PluginSettingTab {
       const statusText = isConnected ? "✓ 連携済み" : "未連携";
 
       new Setting(containerEl)
-        .setName("ChatGPT Max 連携")
+        .setName("ChatGPT Plus / Max 連携")
         .setDesc(
           isConnected
-            ? "ChatGPT Max アカウントと連携済みです。"
+            ? "ChatGPT Plus / Max アカウントと連携済みです。"
             : "ボタンを押してブラウザでログインしてください。ChatGPT Plus / Max のサブスクリプションが必要です。"
         )
         .addButton((btn) => {
@@ -69,7 +69,7 @@ export class VaultAlchemistSettingTab extends PluginSettingTab {
                 this.plugin.settings.oauthExpiresAt = tokens.expiresAt;
                 await this.plugin.saveSettings();
                 this.plugin.updateApiKey(tokens.accessToken);
-                new Notice("✓ ChatGPT Max と連携しました");
+                new Notice("✓ ChatGPT Plus / Max と連携しました");
                 this.display();
               } catch (e: any) {
                 new Notice(`連携失敗: ${e.message}`);
