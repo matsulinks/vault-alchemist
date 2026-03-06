@@ -22,7 +22,7 @@ mkdir -p "$PLUGIN_DIR/service/dist"
 
 echo "[deploy] Copying files..."
 cp plugin/manifest.json "$PLUGIN_DIR/"
-cp -r plugin/dist/* "$PLUGIN_DIR/"
+cp plugin/dist/main.js "$PLUGIN_DIR/"
 cp -r service/dist/* "$PLUGIN_DIR/service/dist/"
 
 echo "[deploy] Done!"
