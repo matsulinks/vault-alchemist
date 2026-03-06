@@ -75,6 +75,48 @@ Obsidianの保管庫（Vault）にある資料を、**AIが"図書館司書＋�
 - xAI（Grok）はX（旧Twitter）のリアルタイム情報アクセスに強み。探索用途として位置づけ
 - 未設定でもxAI無しで全機能が動く設計（オプション）
 
+### OpenAI OAuth 認証（実装済み: 2026-03-06）
+
+ChatGPT Plus / Max のサブスクリプション保持者は、APIキーを用意せずにOAuth経由でサービスを利用できる。
+
+#### 認証フロー（OAuth 2.0 PKCE）
+
+```
+1. PKCE生成: codeVerifier（乱数32B）→ SHA-256 → base64url → codeChallenge
+2. ブラウザを開く: https://auth.openai.com/oauth/authorize
+   - client_id: app_EMoamEEZ73f0CkXaXp7hrann（Codex CLI公開クライアント）
+   - redirect_uri: http://localhost:1455/auth/callback
+   - scope: openid profile email offline_access
+   - code_challenge_method: S256
+3. ローカルHTTPサーバー（port 1455）でコールバックを受信
+4. code + state 検証後、https://auth.openai.com/oauth/token でトークン交換
+5. accessToken / refreshToken / expiresAt をObsidianのプラグイン設定に保存
+6. 有効期限5分前に自動リフレッシュ
+```
+
+#### 実装ファイル
+
+| ファイル | 役割 |
+|---|---|
+| `plugin/src/oauth.ts` | PKCE生成・ブラウザ起動・コールバック受信・トークン交換・リフレッシュ |
+| `plugin/src/settings.ts` | `authMode / oauthAccessToken / oauthRefreshToken / oauthExpiresAt` フィールド追加 |
+| `plugin/src/settings-tab.ts` | 認証方法ドロップダウン・「ChatGPT でログイン」ボタン・連携解除UI |
+| `plugin/src/main.ts` | `resolveApiKey()` でOAuth/APIキーを統一的に取得。`updateApiKey()` でServiceClientを即時更新 |
+| `plugin/src/api-client/service-client.ts` | `updateApiKey()` メソッド追加（トークン更新時に再起動不要） |
+| `service/src/providers/index.ts` | `getProvider()` のキャッシュを廃止（OAuthトークン更新に追従するため） |
+| `service/src/providers/oauth.test.ts` | PKCE・URL構築・トークン交換・リフレッシュ・有効期限管理のユニットテスト（13件） |
+
+#### トークンの流れ
+
+```
+OAuthアクセストークン
+  ↓（plugin）x-openai-key ヘッダー
+  ↓（service）Authorization: Bearer <token>
+  → OpenAI API（APIキーと同じBearerトークン形式）
+```
+
+APIキーとOAuthトークンはサービス層では同一インターフェースで扱う。認証モードの切り替えはプラグイン側のみで完結する。
+
 ---
 
 ## 開発・配布フロー

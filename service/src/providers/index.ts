@@ -5,7 +5,6 @@ import { DEFAULT_FEATURE_FLAGS } from "@vault-alchemist/shared";
 import { OpenAIProvider } from "./openai.js";
 
 let _flags: FeatureFlags | null = null;
-let _provider: LLMProvider | null = null;
 
 export function loadFeatureFlags(vaultPath: string): FeatureFlags {
   if (_flags) return _flags;
@@ -27,8 +26,7 @@ export function loadFeatureFlags(vaultPath: string): FeatureFlags {
   return _flags!;
 }
 
+/** リクエストごとに新しいプロバイダーを返す（OAuthトークン更新に対応するためキャッシュしない） */
 export function getProvider(apiKey: string): LLMProvider {
-  if (_provider) return _provider;
-  _provider = new OpenAIProvider(apiKey);
-  return _provider;
+  return new OpenAIProvider(apiKey);
 }
