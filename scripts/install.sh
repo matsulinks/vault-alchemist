@@ -89,61 +89,37 @@ for v in vaults:
 " "$OBSIDIAN_CONFIG" 2>/dev/null)
 fi
 
-# 見つからなければ .obsidian フォルダを探す（iCloudも含む）
-if [ ${#VAULTS[@]} -eq 0 ]; then
+# ─────────────────────────────────────────────
+# 4. Vault決定（自動・質問なし）
+# ─────────────────────────────────────────────
+VAULT_PATH=""
+
+# open:true または ts最大のVaultを自動選択
+if [ -n "$ACTIVE_VAULT" ] && [ -d "$ACTIVE_VAULT" ]; then
+  VAULT_PATH="$ACTIVE_VAULT"
+fi
+
+# obsidian.jsonで見つからなければ .obsidian フォルダを検索
+if [ -z "$VAULT_PATH" ]; then
   SEARCH_DIRS=(
     "$HOME/Documents"
     "$HOME/Desktop"
     "$HOME/Library/Mobile Documents/iCloud~md~obsidian/Documents"
+    "$HOME/Library/Mobile Documents/com~apple~CloudDocs"
     "$HOME"
   )
-  echo "[debug] .obsidian を検索中..."
-  while IFS= read -r obsidian_dir; do
-    vault_dir="$(dirname "$obsidian_dir")"
-    echo "[debug] 発見: $vault_dir"
-    VAULTS+=("$vault_dir")
-  done < <(find "${SEARCH_DIRS[@]}" -maxdepth 4 -name ".obsidian" -type d 2>/dev/null | grep -v "vault-alchemist")
+  VAULT_PATH=$(find "${SEARCH_DIRS[@]}" -maxdepth 4 -name ".obsidian" -type d 2>/dev/null \
+    | grep -v "vault-alchemist" | head -1 | xargs dirname 2>/dev/null)
 fi
 
-# ─────────────────────────────────────────────
-# 4. Vaultの選択
-# ─────────────────────────────────────────────
-echo ""
-VAULT_PATH=""
-
-# アクティブなVaultが見つかっていればそれを使う
-if [ -n "$ACTIVE_VAULT" ] && [ -d "$ACTIVE_VAULT" ]; then
-  VAULT_PATH="$ACTIVE_VAULT"
-  echo "✓ Vault: $VAULT_PATH"
-elif [ ${#VAULTS[@]} -eq 0 ]; then
-  echo "ObsidianのVaultが見つかりませんでした。"
-  echo "Vaultフォルダをこのウィンドウにドラッグ&ドロップして、Enterを押してください："
-  read -r VAULT_PATH
-  VAULT_PATH="${VAULT_PATH//\\ / }"
-  VAULT_PATH="${VAULT_PATH%/}"
-elif [ ${#VAULTS[@]} -eq 1 ]; then
-  VAULT_PATH="${VAULTS[0]}"
-  echo "✓ Vault: $VAULT_PATH"
-else
-  echo "複数のVaultが見つかりました。使用するものの番号を入力してください："
-  for i in "${!VAULTS[@]}"; do
-    echo "  $((i+1)). ${VAULTS[$i]}"
-  done
-  while true; do
-    printf "番号 (1-${#VAULTS[@]}): "
-    read -r choice
-    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#VAULTS[@]}" ]; then
-      break
-    fi
-    echo "  → 1〜${#VAULTS[@]}の数字を入力してください"
-  done
-  VAULT_PATH="${VAULTS[$((choice-1))]}"
-fi
-
-if [ -z "$VAULT_PATH" ]; then
-  echo "✗ Vaultが選択されませんでした"
+if [ -z "$VAULT_PATH" ] || [ ! -d "$VAULT_PATH" ]; then
+  echo ""
+  echo "✗ Obsidian Vaultが見つかりませんでした"
+  echo "  Obsidianを一度起動してから再実行してください"
   exit 1
 fi
+
+echo "✓ Vault: $(basename "$VAULT_PATH")"
 
 if [ ! -d "$VAULT_PATH" ]; then
   echo "✗ フォルダが見つかりません: $VAULT_PATH"
