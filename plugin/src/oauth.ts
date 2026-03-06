@@ -37,6 +37,83 @@ export function buildAuthUrl(codeChallenge: string, state: string): string {
   return `${OAUTH_AUTH_URL}?${params}`;
 }
 
+function callbackHtml(type: "success" | "error", heading: string, body: string): string {
+  const isSuccess = type === "success";
+  const icon = isSuccess ? "✓" : "✕";
+  const accentColor = isSuccess ? "#4caf82" : "#e05c5c";
+  const bgColor = isSuccess ? "#f0faf4" : "#fdf2f2";
+
+  return `<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vault Alchemist</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: ${bgColor};
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: #1a1a1a;
+    }
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 48px 56px;
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+    .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: ${accentColor};
+      color: #fff;
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 24px;
+    }
+    .app-name {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #888;
+      margin-bottom: 12px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #111;
+    }
+    p {
+      font-size: 15px;
+      color: #555;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">${icon}</div>
+    <div class="app-name">Vault Alchemist</div>
+    <h1>${heading}</h1>
+    <p>${body}</p>
+  </div>
+</body>
+</html>`;
+}
+
 export function waitForOAuthCallback(expectedState: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const server = http.createServer((req, res) => {
@@ -54,7 +131,7 @@ export function waitForOAuthCallback(expectedState: string): Promise<string> {
 
       if (error) {
         res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-        res.end(`<html><body><p>認証エラー: ${error}</p><p>このタブを閉じてください。</p></body></html>`);
+        res.end(callbackHtml("error", `認証エラーが発生しました`, `エラーコード: ${error}`));
         server.close();
         reject(new Error(`OAuth error: ${error}`));
         return;
@@ -62,14 +139,14 @@ export function waitForOAuthCallback(expectedState: string): Promise<string> {
 
       if (!code || state !== expectedState) {
         res.writeHead(400, { "Content-Type": "text/html; charset=utf-8" });
-        res.end("<html><body><p>無効なリクエストです。</p></body></html>");
+        res.end(callbackHtml("error", "無効なリクエストです", "このタブを閉じて、Obsidian からやり直してください。"));
         server.close();
         reject(new Error("Invalid OAuth callback"));
         return;
       }
 
       res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-      res.end("<html><body><h2>✓ 連携完了</h2><p>このタブを閉じてください。</p></body></html>");
+      res.end(callbackHtml("success", "Vault Alchemist と連携しました", "このタブを閉じて、Obsidian に戻ってください。"));
       server.close();
       resolve(code);
     });
