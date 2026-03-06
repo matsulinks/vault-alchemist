@@ -250,6 +250,34 @@
 
     .mock-enable-btn { animation: pulse 2s infinite; }
 
+    /* Step 0: terminal install */
+    .mock-terminal {
+      background: #0d0d0d;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-size: 12px;
+    }
+
+    .mock-terminal-prompt { color: #7dc47d; }
+    .mock-terminal-cmd { color: #e8e8f0; }
+    .mock-terminal-out { color: #666; margin-top: 6px; }
+
+    .copy-btn {
+      display: inline-block;
+      margin-top: 12px;
+      background: #7c6af5;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .copy-btn:active { opacity: 0.8; }
+
     /* Done badge */
     .done-banner {
       background: linear-gradient(135deg, #1e2a1e, #1a2820);
@@ -276,12 +304,28 @@
 
     <div class="steps">
 
-      <!-- Step 1 -->
+      <!-- Step 1: Install -->
       <div class="step">
         <div class="step-number">1</div>
         <div class="step-body">
-          <div class="step-title" data-i18n="step1title">制限モードをオフにする</div>
-          <p class="step-desc" data-i18n="step1desc">Obsidianを開き、設定 → コミュニティプラグイン から「制限モード」をオフにします。</p>
+          <div class="step-title" data-i18n="step1title">ターミナルでインストールする</div>
+          <p class="step-desc" data-i18n="step1desc">Mac のターミナルを開き、以下のコマンドをコピーして実行します。自動でインストールが完了します。</p>
+          <div class="illustration">
+            <div class="mock-terminal">
+              <span class="mock-terminal-prompt">% </span><span class="mock-terminal-cmd">curl -sL https://raw.githubusercontent.com/matsulinks/vault-alchemist/main/install.sh | bash</span>
+              <div class="mock-terminal-out" data-i18n="termOut">→ 保管庫を検出してインストールします...</div>
+            </div>
+          </div>
+          <button class="copy-btn" onclick="navigator.clipboard.writeText('curl -sL https://raw.githubusercontent.com/matsulinks/vault-alchemist/main/install.sh | bash'); this.textContent=copied[lang]" data-i18n="copyBtn">コマンドをコピー</button>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-body">
+          <div class="step-title" data-i18n="step2title">制限モードをオフにする</div>
+          <p class="step-desc" data-i18n="step2desc">Obsidianを開き、設定 → コミュニティプラグイン から「制限モード」をオフにします。</p>
           <div class="illustration">
             <div class="mock-obsidian">
               <div class="mock-sidebar">
@@ -305,12 +349,12 @@
         </div>
       </div>
 
-      <!-- Step 2 -->
+      <!-- Step 3 -->
       <div class="step">
-        <div class="step-number">2</div>
+        <div class="step-number">3</div>
         <div class="step-body">
-          <div class="step-title" data-i18n="step2title">Vault Alchemistを有効にする</div>
-          <p class="step-desc" data-i18n="step2desc">インストール済みプラグインの一覧から「Vault Alchemist」を探して「有効化」を押します。</p>
+          <div class="step-title" data-i18n="step3title">Vault Alchemistを有効にする</div>
+          <p class="step-desc" data-i18n="step3desc">インストール済みプラグインの一覧から「Vault Alchemist」を探して「有効化」を押します。</p>
           <div class="illustration">
             <div class="mock-plugin-list">
               <div class="mock-plugin-item" style="opacity:0.35">
@@ -333,12 +377,12 @@
         </div>
       </div>
 
-      <!-- Step 3 -->
+      <!-- Step 4 -->
       <div class="step">
-        <div class="step-number">3</div>
+        <div class="step-number">4</div>
         <div class="step-body">
-          <div class="step-title" data-i18n="step3title">OpenAI APIキーを入力する</div>
-          <p class="step-desc" data-i18n="step3desc">設定 → Vault Alchemist を開き、APIキーを貼り付けます。キーはこちらから取得できます: platform.openai.com/api-keys</p>
+          <div class="step-title" data-i18n="step4title">OpenAI APIキーを入力する</div>
+          <p class="step-desc" data-i18n="step4desc">設定 → Vault Alchemist を開き、APIキーを貼り付けます。キーはこちらから取得できます: platform.openai.com/api-keys</p>
           <div class="illustration">
             <div class="mock-api-form">
               <div class="mock-input-row">
@@ -363,11 +407,17 @@
   </div>
 
   <script>
+    const copied = { en: "Copied!", ja: "コピーしました！", zh: "已复制！", ko: "복사됨!", de: "Kopiert!", fr: "Copié !", es: "¡Copiado!" };
+
     const translations = {
       en: {
-        subtitle: "One-time setup · 2 minutes",
-        step1title: "Turn off Safe Mode",
-        step1desc: "Open Obsidian → Settings → Community plugins, then toggle Safe Mode off.",
+        subtitle: "One-time setup · 3 minutes",
+        step1title: "Install via Terminal",
+        step1desc: "Open Terminal on your Mac, paste the command below, and press Enter. It will find your vault and install automatically.",
+        termOut: "→ Detecting vault and installing...",
+        copyBtn: "Copy command",
+        step2title: "Turn off Safe Mode",
+        step2desc: "Open Obsidian → Settings → Community plugins, then toggle Safe Mode off.",
         options: "Options",
         general: "General",
         editor: "Editor",
@@ -375,20 +425,24 @@
         community: "Community plugins",
         safemode: "Safe mode",
         safemodeDesc: "Turn off to allow community plugins",
-        step2title: "Enable Vault Alchemist",
-        step2desc: "Find \"Vault Alchemist\" in the installed plugins list and click Enable.",
+        step3title: "Enable Vault Alchemist",
+        step3desc: "Find \"Vault Alchemist\" in the installed plugins list and click Enable.",
         pluginDesc: "AI-powered vault assistant",
         enable: "Enable",
-        step3title: "Enter your OpenAI API key",
-        step3desc: "Go to Settings → Vault Alchemist and paste your API key. Get one at platform.openai.com/api-keys",
+        step4title: "Enter your OpenAI API key",
+        step4desc: "Go to Settings → Vault Alchemist and paste your API key. Get one at platform.openai.com/api-keys",
         apiHint: "Your key is stored locally and never sent anywhere except OpenAI.",
         doneText: "You're all set.",
         doneSubtext: "Close this tab and start using Vault Alchemist.",
       },
       ja: {
-        subtitle: "初回セットアップ · 2分で完了",
-        step1title: "制限モードをオフにする",
-        step1desc: "Obsidianを開き、設定 → コミュニティプラグイン から「制限モード」をオフにします。",
+        subtitle: "初回セットアップ · 3分で完了",
+        step1title: "ターミナルでインストールする",
+        step1desc: "Mac のターミナルを開き、以下のコマンドをコピーして実行します。自動でインストールが完了します。",
+        termOut: "→ 保管庫を検出してインストールします...",
+        copyBtn: "コマンドをコピー",
+        step2title: "制限モードをオフにする",
+        step2desc: "Obsidianを開き、設定 → コミュニティプラグイン から「制限モード」をオフにします。",
         options: "オプション",
         general: "一般",
         editor: "エディター",
@@ -396,20 +450,24 @@
         community: "コミュニティプラグイン",
         safemode: "制限モード",
         safemodeDesc: "オフにするとコミュニティプラグインが使えます",
-        step2title: "Vault Alchemistを有効にする",
-        step2desc: "インストール済みプラグインの一覧から「Vault Alchemist」を探して「有効化」を押します。",
+        step3title: "Vault Alchemistを有効にする",
+        step3desc: "インストール済みプラグインの一覧から「Vault Alchemist」を探して「有効化」を押します。",
         pluginDesc: "AIを使ったVaultアシスタント",
         enable: "有効化",
-        step3title: "OpenAI APIキーを入力する",
-        step3desc: "設定 → Vault Alchemist を開き、APIキーを貼り付けます。キーはこちらから取得できます: platform.openai.com/api-keys",
+        step4title: "OpenAI APIキーを入力する",
+        step4desc: "設定 → Vault Alchemist を開き、APIキーを貼り付けます。キーはこちらから取得できます: platform.openai.com/api-keys",
         apiHint: "キーはローカルに保存され、OpenAI以外には送信されません。",
         doneText: "準備完了です。",
         doneSubtext: "このタブを閉じてVault Alchemistを使い始めましょう。",
       },
       zh: {
-        subtitle: "初次设置 · 2分钟完成",
-        step1title: "关闭安全模式",
-        step1desc: "打开 Obsidian → 设置 → 第三方插件，关闭「安全模式」。",
+        subtitle: "初次设置 · 3分钟完成",
+        step1title: "通过终端安装",
+        step1desc: "打开 Mac 终端，粘贴以下命令并按回车。会自动检测保管库并完成安装。",
+        termOut: "→ 正在检测保管库并安装...",
+        copyBtn: "复制命令",
+        step2title: "关闭安全模式",
+        step2desc: "打开 Obsidian → 设置 → 第三方插件，关闭「安全模式」。",
         options: "选项",
         general: "通用",
         editor: "编辑器",
@@ -417,20 +475,24 @@
         community: "第三方插件",
         safemode: "安全模式",
         safemodeDesc: "关闭后可使用第三方插件",
-        step2title: "启用 Vault Alchemist",
-        step2desc: "在已安装插件列表中找到「Vault Alchemist」，点击「启用」。",
+        step3title: "启用 Vault Alchemist",
+        step3desc: "在已安装插件列表中找到「Vault Alchemist」，点击「启用」。",
         pluginDesc: "AI 驱动的 Vault 助手",
         enable: "启用",
-        step3title: "输入 OpenAI API 密钥",
-        step3desc: "前往 设置 → Vault Alchemist，粘贴您的 API 密钥。在 platform.openai.com/api-keys 获取。",
+        step4title: "输入 OpenAI API 密钥",
+        step4desc: "前往 设置 → Vault Alchemist，粘贴您的 API 密钥。在 platform.openai.com/api-keys 获取。",
         apiHint: "密钥仅保存在本地，不会发送给除 OpenAI 以外的任何方。",
         doneText: "设置完成。",
         doneSubtext: "关闭此标签页，开始使用 Vault Alchemist。",
       },
       ko: {
-        subtitle: "초기 설정 · 2분 소요",
-        step1title: "안전 모드 끄기",
-        step1desc: "Obsidian → 설정 → 커뮤니티 플러그인에서 「안전 모드」를 끕니다.",
+        subtitle: "초기 설정 · 3분 소요",
+        step1title: "터미널로 설치",
+        step1desc: "Mac 터미널을 열고 아래 명령어를 붙여넣고 실행하세요. 자동으로 보관소를 찾아 설치합니다.",
+        termOut: "→ 보관소를 감지하여 설치 중...",
+        copyBtn: "명령어 복사",
+        step2title: "안전 모드 끄기",
+        step2desc: "Obsidian → 설정 → 커뮤니티 플러그인에서 「안전 모드」를 끕니다.",
         options: "옵션",
         general: "일반",
         editor: "편집기",
@@ -438,20 +500,24 @@
         community: "커뮤니티 플러그인",
         safemode: "안전 모드",
         safemodeDesc: "끄면 커뮤니티 플러그인을 사용할 수 있습니다",
-        step2title: "Vault Alchemist 활성화",
-        step2desc: "설치된 플러그인 목록에서 「Vault Alchemist」를 찾아 「활성화」를 클릭합니다.",
+        step3title: "Vault Alchemist 활성화",
+        step3desc: "설치된 플러그인 목록에서 「Vault Alchemist」를 찾아 「활성화」를 클릭합니다.",
         pluginDesc: "AI 기반 Vault 어시스턴트",
         enable: "활성화",
-        step3title: "OpenAI API 키 입력",
-        step3desc: "설정 → Vault Alchemist에서 API 키를 붙여넣습니다. platform.openai.com/api-keys에서 발급받으세요.",
+        step4title: "OpenAI API 키 입력",
+        step4desc: "설정 → Vault Alchemist에서 API 키를 붙여넣습니다. platform.openai.com/api-keys에서 발급받으세요.",
         apiHint: "키는 로컬에 저장되며 OpenAI 외에는 어디에도 전송되지 않습니다.",
         doneText: "설정이 완료되었습니다.",
         doneSubtext: "이 탭을 닫고 Vault Alchemist를 사용해 보세요.",
       },
       de: {
-        subtitle: "Ersteinrichtung · 2 Minuten",
-        step1title: "Sicheren Modus deaktivieren",
-        step1desc: "Öffne Obsidian → Einstellungen → Community-Plugins und schalte den „Sicheren Modus" aus.",
+        subtitle: "Ersteinrichtung · 3 Minuten",
+        step1title: "Installation via Terminal",
+        step1desc: "Öffne das Terminal auf deinem Mac, füge den Befehl ein und drücke Enter. Die Installation erfolgt automatisch.",
+        termOut: "→ Vault wird erkannt und installiert...",
+        copyBtn: "Befehl kopieren",
+        step2title: "Sicheren Modus deaktivieren",
+        step2desc: "Öffne Obsidian → Einstellungen → Community-Plugins und schalte den „Sicheren Modus" aus.",
         options: "Optionen",
         general: "Allgemein",
         editor: "Editor",
@@ -459,20 +525,24 @@
         community: "Community-Plugins",
         safemode: "Sicherer Modus",
         safemodeDesc: "Ausschalten, um Community-Plugins zu erlauben",
-        step2title: "Vault Alchemist aktivieren",
-        step2desc: "Finde „Vault Alchemist" in der Liste der installierten Plugins und klicke auf „Aktivieren".",
+        step3title: "Vault Alchemist aktivieren",
+        step3desc: "Finde „Vault Alchemist" in der Liste der installierten Plugins und klicke auf „Aktivieren".",
         pluginDesc: "KI-gestützter Vault-Assistent",
         enable: "Aktivieren",
-        step3title: "OpenAI API-Schlüssel eingeben",
-        step3desc: "Gehe zu Einstellungen → Vault Alchemist und füge deinen API-Schlüssel ein. Hol dir einen unter platform.openai.com/api-keys",
+        step4title: "OpenAI API-Schlüssel eingeben",
+        step4desc: "Gehe zu Einstellungen → Vault Alchemist und füge deinen API-Schlüssel ein. Hol dir einen unter platform.openai.com/api-keys",
         apiHint: "Dein Schlüssel wird lokal gespeichert und nur an OpenAI gesendet.",
         doneText: "Alles bereit.",
         doneSubtext: "Schließe diesen Tab und starte mit Vault Alchemist.",
       },
       fr: {
-        subtitle: "Configuration initiale · 2 minutes",
-        step1title: "Désactiver le mode sécurisé",
-        step1desc: "Ouvre Obsidian → Paramètres → Plugins communautaires, puis désactive le « Mode sécurisé ».",
+        subtitle: "Configuration initiale · 3 minutes",
+        step1title: "Installation via Terminal",
+        step1desc: "Ouvre le Terminal sur ton Mac, colle la commande ci-dessous et appuie sur Entrée. L'installation se fait automatiquement.",
+        termOut: "→ Détection du vault et installation en cours...",
+        copyBtn: "Copier la commande",
+        step2title: "Désactiver le mode sécurisé",
+        step2desc: "Ouvre Obsidian → Paramètres → Plugins communautaires, puis désactive le « Mode sécurisé ».",
         options: "Options",
         general: "Général",
         editor: "Éditeur",
@@ -480,20 +550,24 @@
         community: "Plugins communautaires",
         safemode: "Mode sécurisé",
         safemodeDesc: "Désactiver pour autoriser les plugins communautaires",
-        step2title: "Activer Vault Alchemist",
-        step2desc: "Trouve « Vault Alchemist » dans la liste des plugins installés et clique sur « Activer ».",
+        step3title: "Activer Vault Alchemist",
+        step3desc: "Trouve « Vault Alchemist » dans la liste des plugins installés et clique sur « Activer ».",
         pluginDesc: "Assistant Vault propulsé par l'IA",
         enable: "Activer",
-        step3title: "Entrer ta clé API OpenAI",
-        step3desc: "Va dans Paramètres → Vault Alchemist et colle ta clé API. Obtiens-en une sur platform.openai.com/api-keys",
+        step4title: "Entrer ta clé API OpenAI",
+        step4desc: "Va dans Paramètres → Vault Alchemist et colle ta clé API. Obtiens-en une sur platform.openai.com/api-keys",
         apiHint: "Ta clé est stockée localement et n'est envoyée qu'à OpenAI.",
         doneText: "Tout est prêt.",
         doneSubtext: "Ferme cet onglet et commence à utiliser Vault Alchemist.",
       },
       es: {
-        subtitle: "Configuración inicial · 2 minutos",
-        step1title: "Desactivar el modo seguro",
-        step1desc: "Abre Obsidian → Ajustes → Plugins de la comunidad y desactiva el «Modo seguro».",
+        subtitle: "Configuración inicial · 3 minutos",
+        step1title: "Instalar desde Terminal",
+        step1desc: "Abre Terminal en tu Mac, pega el comando de abajo y pulsa Enter. La instalación se hace automáticamente.",
+        termOut: "→ Detectando vault e instalando...",
+        copyBtn: "Copiar comando",
+        step2title: "Desactivar el modo seguro",
+        step2desc: "Abre Obsidian → Ajustes → Plugins de la comunidad y desactiva el «Modo seguro».",
         options: "Opciones",
         general: "General",
         editor: "Editor",
@@ -501,12 +575,12 @@
         community: "Plugins de la comunidad",
         safemode: "Modo seguro",
         safemodeDesc: "Desactivar para permitir plugins de la comunidad",
-        step2title: "Activar Vault Alchemist",
-        step2desc: "Encuentra «Vault Alchemist» en la lista de plugins instalados y haz clic en «Activar».",
+        step3title: "Activar Vault Alchemist",
+        step3desc: "Encuentra «Vault Alchemist» en la lista de plugins instalados y haz clic en «Activar».",
         pluginDesc: "Asistente de Vault con IA",
         enable: "Activar",
-        step3title: "Introduce tu clave API de OpenAI",
-        step3desc: "Ve a Ajustes → Vault Alchemist y pega tu clave API. Consíguela en platform.openai.com/api-keys",
+        step4title: "Introduce tu clave API de OpenAI",
+        step4desc: "Ve a Ajustes → Vault Alchemist y pega tu clave API. Consíguela en platform.openai.com/api-keys",
         apiHint: "Tu clave se almacena localmente y solo se envía a OpenAI.",
         doneText: "Todo listo.",
         doneSubtext: "Cierra esta pestaña y empieza a usar Vault Alchemist.",
