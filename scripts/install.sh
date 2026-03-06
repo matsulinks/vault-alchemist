@@ -129,10 +129,15 @@ else
   for i in "${!VAULTS[@]}"; do
     echo "  $((i+1)). ${VAULTS[$i]}"
   done
-  printf "番号: "
-  read -r choice
-  idx=$((choice-1))
-  VAULT_PATH="${VAULTS[$idx]}"
+  while true; do
+    printf "番号 (1-${#VAULTS[@]}): "
+    read -r choice
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#VAULTS[@]}" ]; then
+      break
+    fi
+    echo "  → 1〜${#VAULTS[@]}の数字を入力してください"
+  done
+  VAULT_PATH="${VAULTS[$((choice-1))]}"
 fi
 
 if [ -z "$VAULT_PATH" ]; then
