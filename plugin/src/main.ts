@@ -6,6 +6,7 @@ import { ServiceClient } from "./api-client/service-client.js";
 import { VaultAlchemistSettings, DEFAULT_SETTINGS } from "./settings.js";
 import { VaultAlchemistSettingTab } from "./settings-tab.js";
 import { getValidToken } from "./oauth.js";
+import { reportError } from "./error-reporter.js";
 import {
   ChatCleanerView,
   CHAT_CLEANER_VIEW_TYPE,
@@ -19,6 +20,15 @@ export default class VaultAlchemistPlugin extends Plugin {
   private client!: ServiceClient;
 
   async onload() {
+    try {
+      await this._init();
+    } catch (e) {
+      reportError("onload", e);
+      throw e; // Obsidian にもエラーを伝える
+    }
+  }
+
+  private async _init() {
     await this.loadSettings();
 
     this.serviceManager = new ServiceManager(this.app, this.settings);
@@ -93,7 +103,7 @@ export default class VaultAlchemistPlugin extends Plugin {
   }
 
   onunload() {
-    this.serviceManager.stop();
+    this.serviceManager?.stop();
     console.log("[vault-alchemist] plugin unloaded");
   }
 
