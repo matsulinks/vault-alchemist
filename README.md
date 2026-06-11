@@ -181,8 +181,8 @@ The backend service starts automatically when Obsidian loads. No separate instal
 
 - [Design Spec (spec.md)](docs/spec.md) — Technical spec and design philosophy
 - [Task List (tasks.md)](docs/tasks.md) — Implementation plan in 10-minute chunks
-- [Decision Log (conversation_log.md)](docs/conversation_log.md) — Why we made each choice
-- [📖 NotebookLM](https://notebooklm.google.com/notebook/3f82472f-8f3a-48f5-b8e3-cf041ebc734e) — Ask questions about the design decisions
+- [Decision Log (conversation_log.md)](docs/conversation_log.md) — Public reasoning log for why we made each choice
+- [📖 NotebookLM](https://notebooklm.google.com/notebook/3f82472f-8f3a-48f5-b8e3-cf041ebc734e) — Public notebook for exploring the design intent
 
 ---
 
@@ -232,4 +232,3 @@ For a future where humanity and AI walk together.
 For a future where people and AI can take care of each other.
 
 This is a small step toward that.
-

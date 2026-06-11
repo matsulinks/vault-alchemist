@@ -202,8 +202,8 @@ npm install
 - [**セットアップガイド (SETUP.ja.md)**](SETUP.ja.md) — インストール方法・テスト手順・日常の開発ルーティン
 - [設計図 (spec.md)](docs/spec.md) — 技術仕様と設計哲学
 - [作業手順書 (tasks.md)](docs/tasks.md) — 10分タスク単位の実装計画
-- [意思決定ログ (conversation_log.md)](docs/conversation_log.md) — なぜこう設計したかの会話記録
-- [📖 NotebookLM](https://notebooklm.google.com/notebook/3f82472f-8f3a-48f5-b8e3-cf041ebc734e) — 設計意思決定についてAIと対話できる
+- [意思決定ログ (conversation_log.md)](docs/conversation_log.md) — なぜこう設計したかを伝える公開用の会話記録
+- [📖 NotebookLM](https://notebooklm.google.com/notebook/3f82472f-8f3a-48f5-b8e3-cf041ebc734e) — 設計意図を公開ノートとして読む・質問する
 
 ---
 
@@ -251,4 +251,3 @@ MIT — [LICENSE](LICENSE) を参照
 人と人、人とAIが、お互いをメンテナンスしあえる未来のために。
 
 このツールを、そのための小さな一歩にしたい。
-
