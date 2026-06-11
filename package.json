@@ -1,7 +1,7 @@
 {
   "name": "vault-alchemist",
   "version": "0.1.0",
-  "description": "Turn your Obsidian vault into an AI-powered knowledge asset.",
+  "description": "Turn scattered AI conversations, notes, and documents into reusable knowledge assets.",
   "private": true,
   "workspaces": [
     "shared",
@@ -11,10 +11,11 @@
   "scripts": {
     "build": "npm run build -w shared && npm run build -w plugin && npm run build -w service",
     "dev": "npm run dev --workspaces --if-present",
+    "start:app": "npm run build -w shared && npm run build -w service && node service/dist/main.js",
     "deploy": "bash scripts/deploy-plugin.sh",
     "test": "npm run test --workspaces --if-present"
   },
-  "keywords": ["obsidian", "ai", "knowledge-management", "notes"],
+  "keywords": ["ai", "knowledge-management", "notes", "local-first", "obsidian"],
   "license": "MIT",
   "engines": { "node": ">=22" }
 }

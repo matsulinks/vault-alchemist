@@ -21,13 +21,19 @@ Whatever felt important yesterday is somewhere in the vault, but you're not sure
 
 ---
 
+## June 2026 Product Update
+
+Vault Alchemist was first designed as an Obsidian plugin.
+
+That direction is now secondary.
+
+The product is moving app-first: a standalone local app that can work with ordinary folders first, then integrate with Obsidian as an optional adapter.
+
 ## What Vault Alchemist is
 
-Vault Alchemist is an Obsidian plugin.
+Vault Alchemist is a **knowledge asset engine**.
 
-But more than that — it's a **knowledge asset engine**.
-
-Think of it as an AI librarian living inside your Obsidian vault.
+Think of it as a local AI librarian for your working folders.
 It splits overlong books into chapters.
 It groups scattered fragments by theme.
 It flags what's probably useless, without throwing it away.
@@ -135,7 +141,7 @@ Your data stays local. It moves outward only when you explicitly decide it shoul
 This project is MIT-licensed and fully open. The reasons are layered.
 
 **First: community adoption is the strategy.**
-Obsidian users are technical enough to install a plugin, curious enough to try something new, and vocal enough to share what works. Getting this tool into their hands — without friction, without cost — is how it spreads.
+The first user must be able to use it without becoming an Obsidian power user. Obsidian remains valuable, but it is no longer required for the first useful version.
 
 **Second: AI-assisted development needs a single codebase.**
 The entire project lives in one monorepo. Plugin, backend service, shared types — all together. This isn't just convenient for humans. It's *essential* for AI contributors, who need to see the whole picture to make changes that don't break across boundaries.
@@ -153,6 +159,7 @@ Contributors welcome — human or AI.
 
 | Phase | Focus | Status |
 |---|---|---|
+| Phase 0 | Standalone local app shell | 🚧 In progress |
 | Phase 1 | Chat splitting · cover generation · rollback UI | 🚧 In progress |
 | Phase 2 | Semantic search (embeddings) | ✅ Backend implemented |
 | Phase 3 | Tag hierarchy & dictionary | Not started |
@@ -171,9 +178,15 @@ cd vault-alchemist
 npm install
 ```
 
-Requirements: Node.js 22+, Obsidian 1.0+
+Requirements: Node.js 22+
 
-The backend service starts automatically when Obsidian loads. No separate installation step.
+Run the local app:
+
+```bash
+npm run start:app
+```
+
+Then open `http://127.0.0.1:3000/`.
 
 ---
 
@@ -181,6 +194,7 @@ The backend service starts automatically when Obsidian loads. No separate instal
 
 - [Design Spec (spec.md)](docs/spec.md) — Technical spec and design philosophy
 - [Task List (tasks.md)](docs/tasks.md) — Implementation plan in 10-minute chunks
+- [Product Pivot](docs/product_pivot_2026-06-12.md) — Why the product is moving app-first
 - [Decision Log (conversation_log.md)](docs/conversation_log.md) — Public reasoning log for why we made each choice
 - [📖 NotebookLM](https://notebooklm.google.com/notebook/3f82472f-8f3a-48f5-b8e3-cf041ebc734e) — Public notebook for exploring the design intent
 
