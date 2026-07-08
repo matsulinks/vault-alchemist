@@ -63,6 +63,8 @@ Obsidianの保管庫（Vault）にある資料を、**AIが"図書館司書＋�
 | ライセンス | **MIT License** | 2026-02-26 |
 | 事業モデル | **Open Core**（OSSコア無料 + クレジット課金 + 企業プラン） | 2026-02-26 |
 | タスク粒度 | **1タスク = 10分以内**（完了条件を必ず明記） | 2026-02-26 |
+| DBエンジン（service） | Node 22組み込みの **`node:sqlite`**（旧: `better-sqlite3`。ネイティブビルド依存を排除するため移行） | 2026-07-08 |
+| ローカル/カスタムLLM | **OpenAI互換API**（`baseURL`差し替え）でOllama / LM Studio等に接続可能（上級者向け設定・デフォルトは従来通り公式OpenAI） | 2026-07-08 |
 
 **TypeScript統一の理由**:
 - プラグインとserviceで「データの形（型）」を共有できる
@@ -116,6 +118,40 @@ OAuthアクセストークン
 ```
 
 APIキーとOAuthトークンはサービス層では同一インターフェースで扱う。認証モードの切り替えはプラグイン側のみで完結する。
+
+### ローカル/カスタムLLM（OpenAI互換API、実装済み: 2026-07-08）
+
+Core Definitionの「ローカル優先」を、AIプロバイダそのものの選択にまで広げる形で実装した。
+Mac Mini等で動くOllama / LM StudioなどのOpenAI互換API（`/chat/completions` `/embeddings`）に、
+既存のAPIキー方式と同じ「非永続・per-requestヘッダー伝達」の設計で接続できる。
+
+#### 設定項目（プラグイン設定「ローカル / カスタムLLM（上級者向け）」セクション）
+
+| 項目 | 説明 | デフォルト |
+|---|---|---|
+| Base URL | OpenAI互換APIのエンドポイント（例: `http://localhost:11434/v1`） | 空欄（未設定＝公式OpenAI API） |
+| チャットモデル名 | 空欄なら `gpt-4o-mini` | 空欄 |
+| 埋め込みモデル名 | 空欄なら `text-embedding-3-small` | 空欄 |
+
+#### 伝達方式
+
+`x-openai-key` と同じ非永続ヘッダー方式で、リクエストごとにserviceへ伝える。
+
+```
+x-llm-base-url    ← カスタムAPIのベースURL
+x-llm-chat-model  ← チャットモデル名
+x-llm-embed-model ← 埋め込みモデル名
+```
+
+#### 仕様
+- `baseURL` を設定した場合、APIキーは不要（`Authorization` ヘッダーを付与しない）
+- 公式OpenAI（`api.openai.com`）以外に接続している間は `costUsd = 0`（コスト計算不可のため）
+- **埋め込み整合性ガード**: `EmbeddingStore.assertModelConsistency()` がDBの `embeddings.model` と現在の設定モデルの不一致を検出し、`/embed` `/search` で明確なエラーを返す。**自動再埋め込みは未実装**（既存埋め込みを削除するか設定を戻す必要がある。将来課題）
+- 疎通確認UI（設定画面で接続テストする機能）は未実装（将来課題）
+
+> **設計側注**: 「ローカル優先」は個人データを外に出さないための方針だが、ここでは一歩進めて
+> 「推論そのものをローカルで完結させる」選択肢を用意した。公式OpenAIとの切り替えを
+> ヘッダー1本の有無だけで行える設計にしたことで、上級者はコードを書かずに乗り換えられる。
 
 ---
 
@@ -410,6 +446,7 @@ AIを通じ「その人の考えと対話できる」体験を実現する。
 | 2026-02-24 | 初版。Obsidian資産をAI再利用しやすくする構想で合意 |
 | 2026-02-26 | 技術スタック確定（TypeScript統一）。spec.md・conversation_log.md 作成開始 |
 | 2026-02-26 | Project Map確定。service自動起動設計。Persona公開モード追加。詳細仕様マージ完了 |
+| 2026-07-08 | DB接続を `better-sqlite3` から Node組み込み `node:sqlite` へ移行（依存36パッケージ削減）。Vault書き込みをアトミック化（`atomicWriteFileSync`、同期クライアント対策）。ローカル/カスタムLLM（OpenAI互換API）対応を追加（baseURL/モデル名設定、埋め込み整合性ガード）。MCP節にObsidian 1.12公式CLIに関する状況メモを追記。あわせてインフラ整備（CIワークフロー追加、OAuth非依存ロジックをsharedへ移動、plugin/tsconfig.jsonの型チェック専用化）を実施 |
 
 ---
 
@@ -475,6 +512,18 @@ related: [[...]]                    # 関連ノートのリンク
 ---
 
 ## 🗄️ DB設計（SQLite）
+
+> **実装メモ（2026-07-08）**: serviceのSQLite接続は `better-sqlite3` から Node 22 組み込みの
+> `node:sqlite`（`DatabaseSync`）へ移行済み。`prepare/run/get/all` とPRAGMA（`exec`経由）のみを
+> 使用しており機能的な差分はないため、テーブル設計・挙動に変更はない。
+> `@types/node` がまだ `node:sqlite` の型定義を含まないため、使用箇所のみをカバーする
+> 最小限のアンビエント型宣言（`service/src/db/node-sqlite.d.ts`）を追加している。
+> Node 22実行時に `ExperimentalWarning` が stderr に出力されるが、動作に影響はない。
+>
+> **設計側注**: 「1行インストール／ダブルクリック配布」という配布目標にとって、
+> ネイティブビルドが必要な依存（`better-sqlite3`）は一般ユーザー向け配布の障害になりやすい
+> （OSごとのビルド済みバイナリ配布・ビルド環境の要求）。Node組み込みの `node:sqlite` に
+> 置き換えることで依存を36パッケージ削減し、配布の単純さを技術選定でも一段押し進めた。
 
 ### 1) 意味検索DB（Semantic Index）
 保存場所: `/_alchemy/index/semantic.sqlite`
@@ -573,6 +622,37 @@ chat_recompose_mode:
 - 合計 ≥ 0.7 → 分割確定
 - 0.4〜0.7 → 提案（UIで「⚠ 候補」として表示）
 - < 0.4 → 継続
+
+---
+
+## 🔒 Vault書き込みの安全性（アトミック書き込み、実装済み: 2026-07-08）
+
+### 背景
+ObsidianのVaultは Obsidian Sync / iCloud / Google Driveミラー等の同期クライアントによって
+常時監視されていることが多い。`fs.writeFileSync` でファイルを直接上書きすると、
+書き込みが完了しきる前の「途中状態」を同期クライアントが拾ってしまい、
+壊れた中間状態が他デバイスへ伝播してしまう恐れがある。
+
+### 実装
+`service/src/util/atomic-file.ts` の `atomicWriteFileSync()` が、Vault配下への書き込みを
+すべて次の手順で行う:
+
+```
+1. 同一ディレクトリ内に一時ファイル `.<元ファイル名>.tmp-<pid>-<random>` を書き出す
+2. fs.renameSync() で元ファイルへ差し替える
+   （同一ファイルシステム内のrenameはPOSIX/NTFS双方でアトミック）
+3. 失敗時は一時ファイルを掃除し、元のファイルには一切触れない
+```
+
+### 対象箇所
+- apply-engine: curated出力・index書き換え・rollback復元
+- job-store: job/rollbackログの保存
+- providers: `features.json` の初期書き込み
+
+> **設計側注**: Core Definitionの「安心が最優先」は、UI上のUndoボタンだけでなく
+> ファイルシステムレベルの書き込み挙動にも及ぶ。同期クライアントが壊れた中間状態を
+> 他デバイスにまき散らすことは、ユーザーの目に見えないところで信頼を損なう典型例であり、
+> 「壊れているように見える瞬間」自体を存在させないことを優先した。
 
 ---
 
@@ -812,6 +892,11 @@ path_last_updated_at
 ---
 
 ## 🌩 MCP（外部AI連携）設計
+
+> **状況メモ（2026-07-08）**: 本プロジェクトのMCP実装自体は未着手だが、Obsidian 1.12
+> （2026年2月）で公式CLIが搭載されたことで、コミュニティのMCP連携は従来の
+> 「Local REST APIプラグイン経由」から「公式CLIベースの統合」へ移行が進んでいる状況にある。
+> 着手時には、この公式CLIを統合面の前提として設計できる。
 
 ### 2つの方向性（両方実装する）
 - **A方向**: 外部AIからVault Alchemistへ（外部AIが検索・参照・整理提案）
@@ -1088,22 +1173,29 @@ MVPでは **「ローカルに実体がある」状態（Mirror/Available offlin
 
 ---
 
-## 🔌 ローカルLLM（将来対応）
+## 🔌 ローカルLLM（Phase 6・接続部分は実装済み: 2026-07-08）
 
 ### 目的
 個人情報・機密をローカルで完結させる。
 
 ### 現状方針（Phase 6）
-- MVPでは実装準備のみ（インターフェース設計と切替ポイントの確保）
-- 実際の推論接続は無効化
+- **接続部分は実装済み**: OpenAI互換API（`baseURL`差し替え）でOllama / LM Studio等に
+  接続できる。詳細仕様は「✅ 確定済み技術スタック」直下の
+  「ローカル/カスタムLLM（OpenAI互換API、実装済み: 2026-07-08）」節を参照
+- **未実装（Phase 6として残る部分）**:
+  - Privacy Stage（Stage 4）での「個人情報検出時はlocalへ自動フォールバック」といった
+    自動ルーティングは未実装。現状は接続先をユーザーが手動設定するのみ
+  - 疎通確認UI・モデル互換性の自動検証は未実装
+  - 埋め込みモデル切り替え時の自動再埋め込みは未実装（不一致はエラーで検出のみ）
 
-### 将来有効化条件
+### 将来有効化条件（自動ルーティング部分）
 - 十分なメモリ環境（16GB以上）を持つPC
 - モデル配置パスとローカル推論サーバ（例: Ollama等）設定完了時
 
 ### 設計上の準備
-- Providerとして `local` を予約
-- Privacy Stage（Stage 4）で「local優先」分岐を残す
+- Providerとして `local` を予約 → **実装済み**: `OpenAIProvider` は接続先が
+  `api.openai.com` 以外のとき `name` が `"local"` を返す
+- Privacy Stage（Stage 4）で「local優先」分岐を残す → 未実装（上記参照）
 - モデル保存場所はVault外（Drive同期対象外）
 
 ---

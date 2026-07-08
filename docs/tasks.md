@@ -60,7 +60,7 @@
 ### 🗄️ STEP 2: データ基盤
 
 #### T009: SQLite 接続ライブラリのセットアップ
-- **内容**: `service/` に `better-sqlite3`（TypeScript対応）を導入し、`/_alchemy/` フォルダを Vault 内に作成する
+- **内容**: `service/` に Node 22 組み込みの `node:sqlite`（`DatabaseSync`）を導入し、`/_alchemy/` フォルダを Vault 内に作成する（2026-07-08: `better-sqlite3` から移行済み。ネイティブビルド依存を排除するため）
 - **完了条件**: DB ファイルが `/_alchemy/index/semantic.sqlite` に作成される
 - **依存**: T003
 
