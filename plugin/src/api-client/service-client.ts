@@ -11,20 +11,35 @@ import type {
   EmbeddedNotesResponse,
 } from "@vault-alchemist/shared";
 
+export interface LLMEndpointConfig {
+  /** OpenAI互換APIのベースURL（Ollama等のローカルLLM対応）。未設定なら公式OpenAI API */
+  baseUrl?: string;
+  chatModel?: string;
+  embedModel?: string;
+}
+
 export class ServiceClient {
   private openaiKey?: string;
+  private llmEndpoint: LLMEndpointConfig;
 
   constructor(
     private baseUrl: string,
     private vaultPath: string,
-    openaiKey?: string
+    openaiKey?: string,
+    llmEndpoint?: LLMEndpointConfig
   ) {
     this.openaiKey = openaiKey;
+    this.llmEndpoint = llmEndpoint ?? {};
   }
 
   /** OAuthトークン更新時などに呼ぶ */
   updateApiKey(key: string | undefined): void {
     this.openaiKey = key;
+  }
+
+  /** 設定画面でbaseURL/モデル名が変更された際に呼ぶ */
+  updateLLMEndpoint(config: LLMEndpointConfig): void {
+    this.llmEndpoint = config;
   }
 
   private get headers(): Record<string, string> {
@@ -33,6 +48,9 @@ export class ServiceClient {
       "x-vault-path": this.vaultPath,
     };
     if (this.openaiKey) h["x-openai-key"] = this.openaiKey;
+    if (this.llmEndpoint.baseUrl) h["x-llm-base-url"] = this.llmEndpoint.baseUrl;
+    if (this.llmEndpoint.chatModel) h["x-llm-chat-model"] = this.llmEndpoint.chatModel;
+    if (this.llmEndpoint.embedModel) h["x-llm-embed-model"] = this.llmEndpoint.embedModel;
     return h;
   }
 

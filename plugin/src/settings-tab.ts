@@ -119,5 +119,58 @@ export class VaultAlchemistSettingTab extends PluginSettingTab {
             }
           })
       );
+
+    containerEl.createEl("h2", { text: "ローカル / カスタムLLM（上級者向け）" });
+    containerEl.createEl("p", {
+      text:
+        "Ollama / LM Studio 等、Mac mini上で動くOpenAI互換APIに接続できます。" +
+        "Base URLを空欄のままにすると、これまで通り公式OpenAI APIを使用します（挙動は変わりません）。",
+      cls: "setting-item-description",
+    });
+
+    new Setting(containerEl)
+      .setName("Base URL")
+      .setDesc("OpenAI互換APIのエンドポイント（例: http://localhost:11434/v1）。ローカルLLMはAPIキー不要です。")
+      .addText((text) =>
+        text
+          .setPlaceholder("https://api.openai.com/v1")
+          .setValue(this.plugin.settings.llmBaseUrl)
+          .onChange(async (value) => {
+            this.plugin.settings.llmBaseUrl = value.trim();
+            await this.plugin.saveSettings();
+            this.plugin.updateLLMEndpoint();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("チャットモデル名")
+      .setDesc("空欄の場合は既定値（gpt-4o-mini）を使用します。")
+      .addText((text) =>
+        text
+          .setPlaceholder("gpt-4o-mini")
+          .setValue(this.plugin.settings.llmChatModel)
+          .onChange(async (value) => {
+            this.plugin.settings.llmChatModel = value.trim();
+            await this.plugin.saveSettings();
+            this.plugin.updateLLMEndpoint();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("埋め込みモデル名")
+      .setDesc(
+        "空欄の場合は既定値（text-embedding-3-small）を使用します。" +
+          "既存の埋め込みと異なるモデルに変更すると、意味検索実行時にエラーになります（要再埋め込み）。"
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("text-embedding-3-small")
+          .setValue(this.plugin.settings.llmEmbedModel)
+          .onChange(async (value) => {
+            this.plugin.settings.llmEmbedModel = value.trim();
+            await this.plugin.saveSettings();
+            this.plugin.updateLLMEndpoint();
+          })
+      );
   }
 }

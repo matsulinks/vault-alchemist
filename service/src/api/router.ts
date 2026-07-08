@@ -15,7 +15,8 @@ import type {
 import { estimateNote } from "../pipeline/estimator.js";
 import { ApplyEngine } from "../pipeline/apply-engine.js";
 import { JobStore } from "../db/job-store.js";
-import { getProvider } from "../providers/index.js";
+import { getProvider, type OpenAIProviderOptions } from "../providers/index.js";
+import { DEFAULT_EMBED_MODEL } from "../providers/openai.js";
 import { getDb } from "../db/index.js";
 import { EmbeddingStore } from "../db/embedding-store.js";
 import { chunkText } from "../pipeline/chunker.js";
@@ -31,15 +32,39 @@ function requireVault(req: Request, res: Response): string | null {
   return v;
 }
 
-function requireVaultAndKey(req: Request, res: Response): { vaultPath: string; apiKey: string } | null {
-  const v = req.headers["x-vault-path"] as string;
-  const k = req.headers["x-openai-key"] as string;
-  if (!v || !k) { res.status(400).json({ error: "x-vault-path and x-openai-key headers required" }); return null; }
-  return { vaultPath: v, apiKey: k };
+/** リクエストヘッダーからLLMプロバイダー設定を取り出す（Ollama等のローカルLLM対応） */
+function readProviderOptions(req: Request): OpenAIProviderOptions {
+  return {
+    apiKey: req.headers["x-openai-key"] as string | undefined,
+    baseUrl: req.headers["x-llm-base-url"] as string | undefined,
+    chatModel: req.headers["x-llm-chat-model"] as string | undefined,
+    embedModel: req.headers["x-llm-embed-model"] as string | undefined,
+  };
 }
 
-function makeEngine(vaultPath: string, apiKey?: string): ApplyEngine {
-  return new ApplyEngine(vaultPath, new JobStore(vaultPath), apiKey ? getProvider(apiKey) : null);
+/**
+ * vaultPathとプロバイダー設定を要求する。x-openai-key は必須ではなく、
+ * x-llm-base-url（ローカルLLM等のOpenAI互換API）が指定されていればキー無しでも許可する。
+ */
+function requireVaultAndProvider(
+  req: Request,
+  res: Response
+): { vaultPath: string; providerOpts: OpenAIProviderOptions } | null {
+  const v = req.headers["x-vault-path"] as string;
+  if (!v) { res.status(400).json({ error: "x-vault-path header required" }); return null; }
+  const providerOpts = readProviderOptions(req);
+  if (!providerOpts.apiKey && !providerOpts.baseUrl) {
+    res.status(400).json({
+      error: "x-openai-key header required (or set x-llm-base-url for a local/OpenAI-compatible endpoint)",
+    });
+    return null;
+  }
+  return { vaultPath: v, providerOpts };
+}
+
+function makeEngine(vaultPath: string, providerOpts?: OpenAIProviderOptions): ApplyEngine {
+  const hasProvider = !!(providerOpts && (providerOpts.apiKey || providerOpts.baseUrl));
+  return new ApplyEngine(vaultPath, new JobStore(vaultPath), hasProvider ? getProvider(providerOpts!) : null);
 }
 
 export function createApiRouter(startedAt: number): Router {
@@ -71,8 +96,8 @@ export function createApiRouter(startedAt: number): Router {
       if (vaultPath) res.status(400).json({ error: "notePath required" });
       return;
     }
-    const apiKey = req.headers["x-openai-key"] as string | undefined;
-    withCatch(res, async () => res.json(await makeEngine(vaultPath, apiKey).run(body)));
+    const providerOpts = readProviderOptions(req);
+    withCatch(res, async () => res.json(await makeEngine(vaultPath, providerOpts).run(body)));
   });
 
   router.post("/rollback", (req: Request, res: Response) => {
@@ -120,17 +145,19 @@ export function createApiRouter(startedAt: number): Router {
 
   router.post("/embed", (req: Request, res: Response) => {
     const { notePath } = req.body as EmbedNoteRequest;
-    const headers = requireVaultAndKey(req, res);
+    const headers = requireVaultAndProvider(req, res);
     if (!headers || !notePath) {
       if (headers) res.status(400).json({ error: "notePath required" });
       return;
     }
-    const { vaultPath, apiKey } = headers;
+    const { vaultPath, providerOpts } = headers;
     withCatch(res, async () => {
       const t0 = Date.now();
       const text = fs.readFileSync(nodePath.join(vaultPath, notePath), "utf-8");
       const store = new EmbeddingStore(getDb(vaultPath));
-      const provider = getProvider(apiKey);
+      // 既存の埋め込みと異なるモデルで埋め込もうとしていないか確認する
+      store.assertModelConsistency(providerOpts.embedModel || DEFAULT_EMBED_MODEL);
+      const provider = getProvider(providerOpts);
       let costUsd = 0, embedded = 0, skipped = 0;
       for (const chunk of chunkText(notePath, text)) {
         if (store.hasChunk(chunk.hash)) { skipped++; continue; }
@@ -147,16 +174,19 @@ export function createApiRouter(startedAt: number): Router {
   router.get("/search", (req: Request, res: Response) => {
     const query = req.query["q"] as string | undefined;
     const topK = Math.min(parseInt(req.query["top_k"] as string) || 5, 20);
-    const headers = requireVaultAndKey(req, res);
+    const headers = requireVaultAndProvider(req, res);
     if (!headers || !query) {
       if (headers) res.status(400).json({ error: "q param required" });
       return;
     }
-    const { vaultPath, apiKey } = headers;
+    const { vaultPath, providerOpts } = headers;
     withCatch(res, async () => {
       const t0 = Date.now();
-      const { vector: qVec } = await getProvider(apiKey).embed(query);
-      const results = new EmbeddingStore(getDb(vaultPath)).getAll()
+      const store = new EmbeddingStore(getDb(vaultPath));
+      // 既存の埋め込みと異なるモデルで検索しようとしていないか確認する
+      store.assertModelConsistency(providerOpts.embedModel || DEFAULT_EMBED_MODEL);
+      const { vector: qVec } = await getProvider(providerOpts).embed(query);
+      const results = store.getAll()
         .map((e) => ({ ...e, score: cosineSimilarity(qVec, e.vector) }))
         .sort((a, b) => b.score - a.score)
         .slice(0, topK)

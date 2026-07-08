@@ -83,4 +83,26 @@ export class EmbeddingStore {
   hasChunk(hash: string): boolean {
     return this.db.prepare(`SELECT 1 FROM chunks WHERE hash = ?`).get(hash) !== undefined;
   }
+
+  /** 既存の埋め込みで使われているモデル名の一覧（重複なし） */
+  listUsedModels(): string[] {
+    const rows = this.db.prepare(`SELECT DISTINCT model FROM embeddings`).all() as { model: string }[];
+    return rows.map((r) => r.model);
+  }
+
+  /**
+   * 現在設定されている埋め込みモデルと、既存の埋め込みのモデルが一致するか検証する。
+   * 異なるモデルのベクトルは同じ空間で比較できず、類似度検索が意味を成さなくなるため、
+   * 不一致が見つかった場合は明確なエラーを投げる（自動再埋め込みは行わない）。
+   */
+  assertModelConsistency(currentModel: string): void {
+    const mismatched = this.listUsedModels().filter((m) => m !== currentModel);
+    if (mismatched.length > 0) {
+      throw new Error(
+        `埋め込みモデルの不一致を検出しました。既存の埋め込みは [${mismatched.join(", ")}] で作成されていますが、` +
+        `現在の設定では "${currentModel}" を使用しようとしています。異なるモデルのベクトルは比較できません。` +
+        `設定モデルを既存のものに戻すか、既存の埋め込みを削除してから "${currentModel}" で再埋め込みしてください。`
+      );
+    }
+  }
 }

@@ -2,7 +2,7 @@ import { Plugin, Notice, WorkspaceLeaf } from "obsidian";
 import * as fs from "fs";
 import * as path from "path";
 import { ServiceManager } from "./service-manager.js";
-import { ServiceClient } from "./api-client/service-client.js";
+import { ServiceClient, type LLMEndpointConfig } from "./api-client/service-client.js";
 import { VaultAlchemistSettings, DEFAULT_SETTINGS } from "./settings.js";
 import { VaultAlchemistSettingTab } from "./settings-tab.js";
 import { getValidToken } from "@vault-alchemist/shared";
@@ -42,7 +42,8 @@ export default class VaultAlchemistPlugin extends Plugin {
     this.client = new ServiceClient(
       this.serviceManager.getBaseUrl(),
       vaultPath,
-      initialKey
+      initialKey,
+      this.resolveLLMEndpoint()
     );
 
     // ビューの登録
@@ -126,6 +127,20 @@ export default class VaultAlchemistPlugin extends Plugin {
   /** settings-tab から呼ばれる: ServiceClient のキーをその場で更新する */
   updateApiKey(key: string | undefined): void {
     this.client.updateApiKey(key);
+  }
+
+  /** 現在の設定からLLMエンドポイント設定（baseURL/モデル名）を組み立てる */
+  private resolveLLMEndpoint(): LLMEndpointConfig {
+    return {
+      baseUrl: this.settings.llmBaseUrl || undefined,
+      chatModel: this.settings.llmChatModel || undefined,
+      embedModel: this.settings.llmEmbedModel || undefined,
+    };
+  }
+
+  /** settings-tab から呼ばれる: ServiceClient のLLMエンドポイント設定をその場で更新する */
+  updateLLMEndpoint(): void {
+    this.client.updateLLMEndpoint(this.resolveLLMEndpoint());
   }
 
   private startUpdateWatcher(): void {

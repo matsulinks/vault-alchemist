@@ -115,4 +115,34 @@ describe("EmbeddingStore", () => {
       expect(store.listEmbeddedNotes()).toHaveLength(0);
     });
   });
+
+  describe("listUsedModels / assertModelConsistency", () => {
+    it("空のDBでは listUsedModels が空配列を返す", () => {
+      expect(store.listUsedModels()).toEqual([]);
+    });
+
+    it("listUsedModels は使用済みモデル名を重複なく返す", () => {
+      store.upsert("c1", "notes/a.md", "A1", "h1", [1, 0], "text-embedding-3-small");
+      store.upsert("c2", "notes/a.md", "A2", "h2", [0, 1], "text-embedding-3-small");
+      store.upsert("c3", "notes/b.md", "B1", "h3", [1, 1], "nomic-embed-text");
+
+      expect(store.listUsedModels().sort()).toEqual(["nomic-embed-text", "text-embedding-3-small"]);
+    });
+
+    it("空のDBでは assertModelConsistency は何もエラーを投げない", () => {
+      expect(() => store.assertModelConsistency("text-embedding-3-small")).not.toThrow();
+    });
+
+    it("既存の埋め込みと同じモデルなら assertModelConsistency はエラーを投げない", () => {
+      store.upsert("c1", "notes/a.md", "A1", "h1", [1, 0], "text-embedding-3-small");
+
+      expect(() => store.assertModelConsistency("text-embedding-3-small")).not.toThrow();
+    });
+
+    it("既存の埋め込みと異なるモデルなら assertModelConsistency がエラーを投げる", () => {
+      store.upsert("c1", "notes/a.md", "A1", "h1", [1, 0], "text-embedding-3-small");
+
+      expect(() => store.assertModelConsistency("nomic-embed-text")).toThrow(/不一致/);
+    });
+  });
 });
