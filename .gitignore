@@ -37,6 +37,7 @@ Thumbs.db
 coverage/
 
 # Personal / working files (not for the public repo)
+途中まで（編集NG）.md
 会話歴.md
 仕様書の方針（専用AIプロンプト）.md
 docs/agent-progress.md
