@@ -3,6 +3,7 @@ import * as path from "path";
 import type { LLMProvider, FeatureFlags } from "@vault-alchemist/shared";
 import { DEFAULT_FEATURE_FLAGS } from "@vault-alchemist/shared";
 import { OpenAIProvider } from "./openai.js";
+import { atomicWriteFileSync } from "../util/atomic-file.js";
 
 let _flags: FeatureFlags | null = null;
 
@@ -21,7 +22,7 @@ export function loadFeatureFlags(vaultPath: string): FeatureFlags {
   } else {
     _flags = { ...DEFAULT_FEATURE_FLAGS };
     fs.mkdirSync(path.dirname(flagsPath), { recursive: true });
-    fs.writeFileSync(flagsPath, JSON.stringify(_flags, null, 2));
+    atomicWriteFileSync(flagsPath, JSON.stringify(_flags, null, 2));
   }
   return _flags!;
 }

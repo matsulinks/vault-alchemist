@@ -2,6 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as crypto from "crypto";
 import type { Job, JobType, RollbackLog } from "@vault-alchemist/shared";
+import { atomicWriteFileSync } from "../util/atomic-file.js";
 
 export class JobStore {
   private jobsDir: string;
@@ -46,7 +47,7 @@ export class JobStore {
   }
 
   saveRollbackLog(log: RollbackLog): void {
-    fs.writeFileSync(path.join(this.rollbackDir, `${log.run_id}.json`), JSON.stringify(log, null, 2));
+    atomicWriteFileSync(path.join(this.rollbackDir, `${log.run_id}.json`), JSON.stringify(log, null, 2));
   }
 
   getRollbackLog(run_id: string): RollbackLog | null {
@@ -63,7 +64,7 @@ export class JobStore {
   }
 
   private saveJob(job: Job): void {
-    fs.writeFileSync(path.join(this.jobsDir, `${job.job_id}.json`), JSON.stringify(job, null, 2));
+    atomicWriteFileSync(path.join(this.jobsDir, `${job.job_id}.json`), JSON.stringify(job, null, 2));
   }
 
   private readAllJobs(): Job[] {

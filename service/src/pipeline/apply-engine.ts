@@ -14,6 +14,7 @@ import { buildThreads, buildThreadNote, buildIndexNote, threadToPreview, type Th
 import { generateCover } from "./cover-generator.js";
 import { hashContent } from "./estimator.js";
 import { JobStore } from "../db/job-store.js";
+import { atomicWriteFileSync } from "../util/atomic-file.js";
 
 export class ApplyEngine {
   constructor(
@@ -87,7 +88,7 @@ export class ApplyEngine {
         ? path.join(path.dirname(req.notePath), fname)
         : path.join("_alchemy", "curated", baseName, fname);
       const threadContent = buildThreadNote(threads[i], previews[i]);
-      fs.writeFileSync(path.join(outDir, fname), threadContent, "utf-8");
+      atomicWriteFileSync(path.join(outDir, fname), threadContent);
       createdPaths.push(relPath);
       createdThreadNotes.push({ path: relPath, title: previews[i].title, hash: hashContent(threadContent) });
     }
@@ -98,7 +99,7 @@ export class ApplyEngine {
     let indexNotePath: string | undefined;
     if (inPlace) {
       const indexContent = buildIndexNote(baseName, previews, createdPaths);
-      fs.writeFileSync(path.join(this.vaultPath, req.notePath), indexContent, "utf-8");
+      atomicWriteFileSync(path.join(this.vaultPath, req.notePath), indexContent);
       log.after_hash = hashContent(indexContent);
       log.index_note_content = indexContent;
       indexNotePath = req.notePath;
@@ -112,7 +113,7 @@ export class ApplyEngine {
     const log = this.jobStore.getRollbackLog(req.run_id);
     if (!log) throw new Error(`Rollback log not found: ${req.run_id}`);
 
-    fs.writeFileSync(path.join(this.vaultPath, log.original_note_path), log.before_content, "utf-8");
+    atomicWriteFileSync(path.join(this.vaultPath, log.original_note_path), log.before_content);
 
     const deletedPaths: string[] = [];
     for (const t of log.created_thread_notes) {
