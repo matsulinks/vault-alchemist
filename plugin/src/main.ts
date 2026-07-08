@@ -5,7 +5,7 @@ import { ServiceManager } from "./service-manager.js";
 import { ServiceClient } from "./api-client/service-client.js";
 import { VaultAlchemistSettings, DEFAULT_SETTINGS } from "./settings.js";
 import { VaultAlchemistSettingTab } from "./settings-tab.js";
-import { getValidToken } from "./oauth.js";
+import { getValidToken } from "@vault-alchemist/shared";
 import { reportError } from "./error-reporter.js";
 import {
   ChatCleanerView,

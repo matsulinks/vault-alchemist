@@ -8,7 +8,7 @@ import {
   OAUTH_CLIENT_ID,
   OAUTH_AUTH_URL,
   OAUTH_REDIRECT_URI,
-} from "../../../plugin/src/oauth.js";
+} from "@vault-alchemist/shared";
 
 // NOTE: waitForOAuthCallback と startOAuthFlow は Node.js http サーバーと
 // Electron shell に依存するため、統合テストの対象外とする。
