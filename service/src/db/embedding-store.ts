@@ -1,4 +1,4 @@
-import type Database from "better-sqlite3";
+import type { DatabaseSync } from "node:sqlite";
 
 export interface StoredEmbedding {
   chunkId: string;
@@ -14,7 +14,7 @@ export interface EmbeddedNoteInfo {
 }
 
 export class EmbeddingStore {
-  constructor(private db: Database.Database) {}
+  constructor(private db: DatabaseSync) {}
 
   upsert(
     chunkId: string,
@@ -52,7 +52,7 @@ export class EmbeddingStore {
          FROM embeddings e
          JOIN chunks c ON e.chunk_id = c.chunk_id`,
       )
-      .all() as { chunk_id: string; note_path: string; text: string; vector: Buffer }[];
+      .all() as { chunk_id: string; note_path: string; text: string; vector: Uint8Array }[];
 
     return rows.map((r) => ({
       chunkId: r.chunk_id,

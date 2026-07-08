@@ -1,24 +1,24 @@
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import * as fs from "fs";
 import * as path from "path";
 
-let _db: Database.Database | null = null;
+let _db: DatabaseSync | null = null;
 
-export function getDb(vaultPath: string): Database.Database {
+export function getDb(vaultPath: string): DatabaseSync {
   if (_db) return _db;
 
   const dbDir = path.join(vaultPath, "_alchemy", "index");
   fs.mkdirSync(dbDir, { recursive: true });
 
-  _db = new Database(path.join(dbDir, "semantic.sqlite"));
-  _db.pragma("journal_mode = WAL");
-  _db.pragma("foreign_keys = ON");
+  _db = new DatabaseSync(path.join(dbDir, "semantic.sqlite"));
+  _db.exec("PRAGMA journal_mode = WAL;");
+  _db.exec("PRAGMA foreign_keys = ON;");
 
   applyMigrations(_db);
   return _db;
 }
 
-function applyMigrations(db: Database.Database): void {
+function applyMigrations(db: DatabaseSync): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS chunks (
       chunk_id     TEXT PRIMARY KEY,

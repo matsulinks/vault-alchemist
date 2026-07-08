@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import { EmbeddingStore } from "./embedding-store.js";
 
-function makeDb(): Database.Database {
-  const db = new Database(":memory:");
-  db.pragma("journal_mode = WAL");
+function makeDb(): DatabaseSync {
+  const db = new DatabaseSync(":memory:");
+  db.exec("PRAGMA journal_mode = WAL;");
   db.exec(`
     CREATE TABLE IF NOT EXISTS chunks (
       chunk_id     TEXT PRIMARY KEY,
